@@ -21,7 +21,7 @@ for i in range(count):
 	leftMotorPower = random.randInt(-255, 255)
 	rightMotorPower = random.randInt(-255, 255)
 
-	ser.write(leftMotorPower + " " + rightMotorPower)
+	ser.write(leftMotorPower + ":" + rightMotorPower)
 
 	if(randomTime):
 		sleepTime = random.uniform(time_min, time_max)
@@ -30,7 +30,7 @@ for i in range(count):
 		sleepTime = timeBetweenIntervals
 		time.sleep(sleepTime)
 
-	ser.write("0 0")
+	ser.write("0:0")
 	time.sleep(0.25)
 
 	os.system("fswebcam FRAME_" + i +".jpg")
