@@ -33,18 +33,22 @@ void setup() {
   Serial.begin(9600);
   Serial.setTimeout(20);
 
-  pinMode(PWM_A, OUTPUT);
-  pinMode(PWM_B, OUTPUT);
+  //pinMode(PWM_A, OUTPUT);
+  //pinMode(PWM_B, OUTPUT);
   pinMode(BRAKE_A, OUTPUT);
   pinMode(BRAKE_B, OUTPUT);
+  pinMode(DIR_A, OUTPUT);
+  pinMode(DIR_B, OUTPUT);
 }
 
-void loop() {
+void loop() {  
   if(Serial.available()) {
+    Serial.println("In the loop");
+    
     parseSerial(Serial.readString(), motors);
     
     int leftMotorPower = motors[0];
-    int rightMotorPower = motors[1];
+    int rightMotorPower = -motors[1];
 
     Serial.println(leftMotorPower);
     Serial.println(rightMotorPower);
