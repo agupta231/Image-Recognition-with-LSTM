@@ -10,7 +10,8 @@ time_max = 3
 time_min = 1.5
 
 name = raw_input("Name of Trial:\n")
-os.makedirs(os.getcwd() + "/" + name)
+os.system("mkdir " + os.getcwd() + "/" + name)
+os.system("mkdir " + os.getcwd() + "/" + name + "/frames")
 
 logFile = open(os.getcwd() + "/" + name + "/" + "LogFile.txt", "a")
 
@@ -30,7 +31,7 @@ else:
 
 ## First photo
 os.system("fswebcam --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_0.jpg")
-logFile.write("0:0:0:0:" + time.time() + "\n")
+logFile.write("0:0:0:0:" + str(time.time()) + "\n")
 
 ## Rest of the frames
 for i in range(1, count):
@@ -50,5 +51,5 @@ for i in range(1, count):
 	time.sleep(0.25)
 
 	os.system("fswebcam --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_" + i +".jpg")
-	logFile.write(i + ":" + leftMotorPower + ":" + rightMotorPower + ":" + sleepTime + ":" + time.time() + "\n")
+	logFile.write(i + ":" + str(leftMotorPower) + ":" + str(rightMotorPower) + ":" + str(sleepTime) + ":" + str(time.time()) + "\n")
 	time.sleep(0.25)
