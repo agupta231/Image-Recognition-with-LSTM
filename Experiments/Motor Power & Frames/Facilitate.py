@@ -34,8 +34,8 @@ logFile.write("0:0:0:0:" + time.asctime(time.localtime(None)) + "\n")
 
 ## Rest of the frames
 for i in range(1, count):
-	leftMotorPower = random.randint(*random.choice([(-255, -100), (100, 255)]))
-	rightMotorPower = random.randint(*random.choice([(-255, -100), (100, 255)]))
+	leftMotorPower = random.randint(*random.choice([(-255, -150), (150, 255)]))
+	rightMotorPower = random.randint(*random.choice([(-255, -150), (150, 255)]))
 
 	ser.write(leftMotorPower + ":" + rightMotorPower)
 
