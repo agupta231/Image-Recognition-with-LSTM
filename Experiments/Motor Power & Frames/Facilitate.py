@@ -23,7 +23,7 @@ logFile = open(os.getcwd() + "/" + name + "/" + "LogFile.txt", "a")
 count = int(raw_input("How many photos / frames?\n"))
 timeBetweenIntervals = raw_input("Time between frames: (rand for random)\n")
 
-if(timeBetweenIntervals === "rand"):
+if(timeBetweenIntervals == "rand"):
 	randomTime = True
 else:
 	timeBetweenIntervals = int(timeBetweenIntervals)
