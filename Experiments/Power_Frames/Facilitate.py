@@ -48,8 +48,8 @@ for i in range(1, count):
 	time.sleep(sleepTime)
 
 	ser.write("0:0")
-	time.sleep(1)
+	time.sleep(2)
 
 	os.system("fswebcam -r 640x480 --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_" + str(i) +".jpg")
 	logFile.write(str(i) + ":" + str(leftMotorPower) + ":" + str(rightMotorPower) + ":" + str(sleepTime) + ":" + str(time.time()) + "\n")
-	time.sleep(1)
+	time.sleep(2)
