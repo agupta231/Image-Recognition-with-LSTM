@@ -50,6 +50,6 @@ for i in range(1, count):
 	ser.write("0:0")
 	time.sleep(0.25)
 
-	os.system("fswebcam --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_" + i +".jpg")
+	os.system("fswebcam --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_" + str(i) +".jpg")
 	logFile.write(i + ":" + str(leftMotorPower) + ":" + str(rightMotorPower) + ":" + str(sleepTime) + ":" + str(time.time()) + "\n")
 	time.sleep(0.25)
