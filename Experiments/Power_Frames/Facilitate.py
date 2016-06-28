@@ -30,7 +30,7 @@ else:
 	timeBetweenIntervals = float(timeBetweenIntervals)
 
 ## First photo
-os.system("fswebcam --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_0.jpg")
+os.system("fswebcam -r 640x480 --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_0.jpg")
 logFile.write("0:0:0:0:" + str(time.time()) + "\n")
 
 ## Rest of the frames
@@ -48,8 +48,8 @@ for i in range(1, count):
 	time.sleep(sleepTime)
 
 	ser.write("0:0")
-	time.sleep(0.25)
+	time.sleep(1)
 
-	os.system("fswebcam --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_" + str(i) +".jpg")
+	os.system("fswebcam -r 640x480 --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_" + str(i) +".jpg")
 	logFile.write(str(i) + ":" + str(leftMotorPower) + ":" + str(rightMotorPower) + ":" + str(sleepTime) + ":" + str(time.time()) + "\n")
-	time.sleep(0.25)
+	time.sleep(1)
