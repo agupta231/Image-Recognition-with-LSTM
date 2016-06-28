@@ -35,8 +35,8 @@ logFile.write("0:0:0:0:" + str(time.time()) + "\n")
 
 ## Rest of the frames
 for i in range(1, count):
-	leftMotorPower = random.randint(*random.choice([(-255, -150), (150, 255)]))
-	rightMotorPower = random.randint(*random.choice([(-255, -150), (150, 255)]))
+	leftMotorPower = random.randint(*random.choice([(-255, -175), (175, 255)]))
+	rightMotorPower = random.randint(*random.choice([(-255, -175), (175, 255)]))
 
 	ser.write(str(leftMotorPower) + ":" + str(rightMotorPower))
 
