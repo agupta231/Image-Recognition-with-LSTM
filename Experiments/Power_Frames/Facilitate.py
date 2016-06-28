@@ -30,14 +30,14 @@ else:
 
 ## First photo
 os.system("fswebcam --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_0.jpg")
-logFile.write("0:0:0:0:" + time.asctime(time.localtime(None)) + "\n")
+logFile.write("0:0:0:0:" + time.time() + "\n")
 
 ## Rest of the frames
 for i in range(1, count):
 	leftMotorPower = random.randint(*random.choice([(-255, -150), (150, 255)]))
 	rightMotorPower = random.randint(*random.choice([(-255, -150), (150, 255)]))
 
-	ser.write(leftMotorPower + ":" + rightMotorPower)
+	ser.write(str(leftMotorPower) + ":" + str(rightMotorPower))
 
 	sleepTime = timeBetweenIntervals
 
@@ -50,5 +50,5 @@ for i in range(1, count):
 	time.sleep(0.25)
 
 	os.system("fswebcam --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_" + i +".jpg")
-	logFile.write(i + ":" + leftMotorPower + ":" + rightMotorPower + ":" + sleepTime + ":" + time.asctime(time.localtime(None)) + "\n")
+	logFile.write(i + ":" + leftMotorPower + ":" + rightMotorPower + ":" + sleepTime + ":" + time.time() + "\n")
 	time.sleep(0.25)
