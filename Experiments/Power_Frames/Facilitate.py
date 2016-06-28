@@ -6,8 +6,8 @@ import os
 ser = serial.Serial('/dev/ttyACM0', 9600)
 
 randomTime = False
-time_max = 3
-time_min = 1.5
+time_max = 1.5
+time_min = 0
 
 name = raw_input("Name of Trial:\n")
 os.system("mkdir " + os.getcwd() + "/" + name)
