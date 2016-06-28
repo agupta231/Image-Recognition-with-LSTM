@@ -27,7 +27,7 @@ timeBetweenIntervals = raw_input("Time between frames: (rand for random)\n")
 if(timeBetweenIntervals == "rand"):
 	randomTime = True
 else:
-	timeBetweenIntervals = int(timeBetweenIntervals)
+	timeBetweenIntervals = float(timeBetweenIntervals)
 
 ## First photo
 os.system("fswebcam --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_0.jpg")
