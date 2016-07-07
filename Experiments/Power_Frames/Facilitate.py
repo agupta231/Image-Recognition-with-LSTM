@@ -41,7 +41,7 @@ for i in range(1, count):
 
 	sign = random.randint(1, 2)
 
-	if randint == 2:
+	if sign == 2:
 		leftMotorPower *= -1
 		rightMotorPower *= -1
 
