@@ -66,3 +66,11 @@ b_conv5 = bias([256])
 h_conv5 = tf.nn.relu(conv2d(h_conv4, W_conv5, padding=1) + b_conv5)
 
 h_pool3 = max_pool(h_conv5, 4)
+
+W_fc1 = weight([11 * 11 * 256, 4096])
+b_fc1 = bias([4096])
+
+h_pool3_flat = tf.reshape(h_pool3, [-1, 11 * 11 * 256])
+input_tensor_final = tf.concat(0, [h_pool3_flat, ])
+
+h_fc1 = tf.nn.relu(tf.matmul(h_pool3_flat, W_fc1) + b_fc1)
