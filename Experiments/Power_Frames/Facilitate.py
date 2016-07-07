@@ -36,8 +36,8 @@ logFile.write("0:0:0:0:" + str(time.time()) + "\n")
 
 ## Rest of the frames
 for i in range(1, count):
-	leftMotorPower = random.randint(200, 255)
-	rightMotorPower = random.randint(200, 255)
+	leftMotorPower = random.randint(125, 255)
+	rightMotorPower = random.randint(125, 255)
 
 	sign = random.randint(1, 2)
 
