@@ -1,3 +1,4 @@
+from time import gmtime, strftime
 import serial
 import time
 import random
@@ -30,14 +31,21 @@ else:
 	timeBetweenIntervals = float(timeBetweenIntervals)
 
 ## First photo
-os.system("fswebcam -r 640x480 --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_0.jpg")
+os.system("fswebcam -r 640x480 --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_0_" + str(strftime("%Y-%m-%d_%H:%M:%S")) + ".jpg")
 logFile.write("0:0:0:0:" + str(time.time()) + "\n")
 
 ## Rest of the frames
 for i in range(1, count):
-	leftMotorPower = random.randint(*random.choice([(-255, -175), (175, 255)]))
-	rightMotorPower = random.randint(*random.choice([(-255, -175), (175, 255)]))
+	leftMotorPower = random.randint(25, 255)
+	rightMotorPower = random.randint(25, 255)
 
+	sign = random.randint(1, 2)
+
+	if sign == 2:
+		leftMotorPower *= -1
+		rightMotorPower *= -1
+
+	print "\n Right motor power: " + str(rightMotorPower) + "\n Left motor power: " + str(leftMotorPower) + "\n"
 	ser.write(str(leftMotorPower) + ":" + str(rightMotorPower))
 
 	sleepTime = timeBetweenIntervals
@@ -50,6 +58,6 @@ for i in range(1, count):
 	ser.write("0:0")
 	time.sleep(2)
 
-	os.system("fswebcam -r 640x480 --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_" + str(i) +".jpg")
+	os.system("fswebcam -r 640x480 --no-banner " + os.getcwd() + "/" + name + "/frames/FRAME_" + str(i) + "_" + str(strftime("%Y-%m-%d_%H:%M:%S")) + ".jpg")
 	logFile.write(str(i) + ":" + str(leftMotorPower) + ":" + str(rightMotorPower) + ":" + str(sleepTime) + ":" + str(time.time()) + "\n")
-	time.sleep(2)
+	time.sleep(5)
