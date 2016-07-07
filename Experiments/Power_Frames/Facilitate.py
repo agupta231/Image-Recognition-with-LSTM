@@ -39,6 +39,7 @@ for i in range(1, count):
 	leftMotorPower = random.randint(*random.choice([(-255, -200), (200, 255)]))
 	rightMotorPower = random.randint(*random.choice([(-255, -200), (200, 255)]))
 
+	print "\n Right motor power: " + str(rightMotorPower) + "\n Left motor power: " + str(leftMotorPower) + "\n"
 	ser.write(str(leftMotorPower) + ":" + str(rightMotorPower))
 
 	sleepTime = timeBetweenIntervals
