@@ -1,4 +1,7 @@
 import tensorflow as tf
+from DataImport import DataImport
+import glob as glob
+import os
 
 imageWidth = 400
 imageHeight = 400
@@ -8,6 +11,22 @@ pixelCount = imageHeight * imageWidth
 # auxVariables = 4
 auxVariables = 3
 channels = 1
+epochs = 20000
+batchSize = 50
+
+
+# IMPORTING THE DATA
+DI = DataImport("cropped_frames")
+
+DI.setImage(imageWidth, imageHeight, channels)
+dataFolders = glob.glob(os.getcwd() + "/../Experiments/Power_Frames/Basement*")
+
+for path in dataFolders:
+    DI.importFolder(path)
+
+##############
+# Code for Neural Network starts now
+##############
 
 
 def weight(shape):
@@ -38,8 +57,7 @@ rightMotorPower = tf.placeholder(tf.int16, shape=[None, 1])
 leftMotorPower = tf.placeholder(tf.int16, shape=[None, 1])
 duration = tf.placeholder(tf.int16, shape=[None, 1])
 # Don't want to use ticks yet, as lighting didn't change during the experiment
-
-output_image_actual = tf.placeholder(tf.int16, shape=[None, imageWidth, imageHeight, channels])
+output_flattened_actual = tf.placeholder(tf.int16, shape=[None, pixelCount * channels])
 
 W_conv1 = weight([4, 4, channels, 96])
 b_conv1 = bias([96])
@@ -89,11 +107,41 @@ h_fc2 = tf.nn.relu(tf.matmul(h_fc1_dropout, W_fc2) + b_fc2)
 keep_prob_fc2 = tf.placeholder(tf.float32)
 h_fc2_dropout = tf.nn.dropout(h_fc2, keep_prob_fc2)
 
-W_fc3 = weight([8192, pixelCount])
-b_fc3 = bias([pixelCount])
+W_fc3 = weight([8192, pixelCount * channels])
+b_fc3 = bias([pixelCount * channels])
 
-output = tf.nn.relu(tf.matmul(h_fc2_dropout, W_fc3) + b_fc3)
-output_image = x_image = tf.reshape(output, [-1, imageWidth, imageHeight, channels])
+output_flattened = tf.nn.relu(tf.matmul(h_fc2_dropout, W_fc3) + b_fc3)
 
-cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_image_actual * tf.log(output_image), reduction_indices=[1]))
+# This tensor is used for dividing all of the difference values by a denominator to get a fractional error
+denom_tensor = tf.fill([pixelCount * channels], 255)
+
+cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_flattened_actual * tf.log(output_flattened), reduction_indices=[1]))
 train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+accuracy = tf.reduce_mean(tf.abs(tf.div(tf.sub(output_flattened_actual, output_flattened), denom_tensor)))
+
+session.run(tf.initialize_all_variables())
+for i in range(epochs):
+    batch = DI.next_batch(batchSize)
+
+    if i % 100 == 0:
+        train_accuracy = accuracy.eval(feed_dict={
+            image: batch[0],
+            rightMotorPower: batch[1],
+            leftMotorPower: batch[2],
+            duration: batch[3],
+            output_flattened_actual: batch[4],
+            keep_prob_fc1: 1.0,
+            keep_prob_fc2: 1.0
+        })
+
+        print("Step %d, training accuracy %g" % (i, train_accuracy))
+
+    train_step.run(feed_dict={
+        image: batch[0],
+        rightMotorPower: batch[1],
+        leftMotorPower: batch[2],
+        duration: batch[3],
+        output_flattened_actual: batch[4],
+        keep_prob_fc1: 0.5,
+        keep_prob_fc2: 0.5
+    })
