@@ -39,13 +39,14 @@ def bias(shape):
     return tf.Variable(initial)
 
 
-def conv2d(x, W, stride=1, padding=0):
-    x_padded = tf.pad(x, [[padding, padding], [padding, padding]], "CONSTANT")
-    return tf.nn.conv2d(x_padded, W, strides=[1, stride, stride, 1], padding='VALID')
+def conv2d(x, W, stride=1.0, padding=0):
+    x = tf.to_float(x)
+    x_padded = tf.pad(x, [[0, 0], [padding, padding], [padding, padding], [0, 0]], "CONSTANT")
+    return tf.nn.conv2d(x_padded, W, strides=[1.0, stride, stride, 1.0], padding='VALID')
 
 
 def max_pool(x, size, stride=2, padding=0):
-    x_padded = tf.pad(x, [[padding, padding], [padding, padding]], "CONSTANT")
+    x_padded = tf.pad(x, [[0, 0], [padding, padding], [padding, padding], [0, 0]], "CONSTANT")
     return tf.nn.max_pool(x_padded, ksize=[1, size, size, 1], strides=[1, stride, stride, 1], padding='VALID')
 
 # Make the Tensorflow session
@@ -53,16 +54,16 @@ session = tf.InteractiveSession()
 
 # Make placeholders for the model
 image = tf.placeholder(tf.int16, shape=[None, imageWidth, imageHeight, channels])
-rightMotorPower = tf.placeholder(tf.int16, shape=[None, 1])
-leftMotorPower = tf.placeholder(tf.int16, shape=[None, 1])
-duration = tf.placeholder(tf.int16, shape=[None, 1])
+rightMotorPower = tf.placeholder(tf.float32, shape=[None, 1])
+leftMotorPower = tf.placeholder(tf.float32, shape=[None, 1])
+duration = tf.placeholder(tf.float32, shape=[None, 1])
 # Don't want to use ticks yet, as lighting didn't change during the experiment
-output_flattened_actual = tf.placeholder(tf.int16, shape=[None, pixelCount * channels])
+output_flattened_actual = tf.placeholder(tf.float32, shape=[None, pixelCount * channels])
 
 W_conv1 = weight([4, 4, channels, 96])
 b_conv1 = bias([96])
 
-h_conv1 = tf.nn.relu(conv2d(image, W_conv1, stride=4) + b_conv1)
+h_conv1 = tf.nn.relu(conv2d(image, W_conv1, stride=4.0) + b_conv1)
 h_pool1 = max_pool(h_conv1, 2)
 
 W_conv2 = weight([5, 5, 96, 128])
@@ -113,11 +114,11 @@ b_fc3 = bias([pixelCount * channels])
 output_flattened = tf.nn.relu(tf.matmul(h_fc2_dropout, W_fc3) + b_fc3)
 
 # This tensor is used for dividing all of the difference values by a denominator to get a fractional error
-denom_tensor = tf.fill([pixelCount * channels], 255)
+denom_tensor = tf.fill([pixelCount * channels], 255.0)
 
 cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_flattened_actual * tf.log(output_flattened), reduction_indices=[1]))
 train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-accuracy = tf.reduce_mean(tf.abs(tf.div(tf.sub(output_flattened_actual, output_flattened), denom_tensor)))
+accuracy = tf.constant(1.0) - tf.reduce_mean(tf.abs(tf.div(tf.sub(output_flattened_actual, output_flattened), denom_tensor)))
 
 session.run(tf.initialize_all_variables())
 for i in range(epochs):
@@ -133,7 +134,6 @@ for i in range(epochs):
             keep_prob_fc1: 1.0,
             keep_prob_fc2: 1.0
         })
-
         print("Step %d, training accuracy %g" % (i, train_accuracy))
 
     train_step.run(feed_dict={
