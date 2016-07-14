@@ -1,6 +1,7 @@
 import glob
 from Image import Image
 import random
+import numpy as np
 
 
 class DataImport:
@@ -33,7 +34,7 @@ class DataImport:
 
                 if breakMarker:
                     self.dataArray.append(Image(
-                        file,
+                        file[0],
                         0.0,
                         0.0,
                         0.0,
@@ -41,7 +42,7 @@ class DataImport:
                     ))
                 else:
                     self.dataArray.append(Image(
-                        file,
+                        file[0],
                         float(lineData[1]),
                         float(lineData[2]),
                         float(lineData[3]),
@@ -49,8 +50,8 @@ class DataImport:
                     ))
 
     def next_batch(self, size):
-        batchStart = random.randint(0, len(self.dataArray) - (size + 1))
-        batch = self.dataArray[batchStart:batchStart + size]
+        batchStart = random.randint(0, len(self.dataArray) - (size + 2))
+        batch = self.dataArray[batchStart:batchStart + size + 1]
 
         input_image = []
         rightMotorPower = []
@@ -58,7 +59,7 @@ class DataImport:
         duration = []
         output_image = []
 
-        for i in range(len(batch)):
+        for i in range(size):
             input_image.append(batch[i].to_tensor())
             rightMotorPower.append(batch[i + 1].rightMotorPower)
             leftMotorPower.append(batch[i + 1].leftMotorPower)
@@ -74,5 +75,5 @@ class DataImport:
 
     def setImage(self, imageWidth, imageHeight, channels):
         Image.image_width = imageWidth
-        Image.image_height = imageHeight,
+        Image.image_height = imageHeight
         Image.channels = channels

@@ -1,4 +1,5 @@
 import tensorflow as tf
+import numpy as np
 
 
 class Image:
@@ -8,13 +9,13 @@ class Image:
 
     def __init__(self, imagePath, leftMotorPower, rightMotorPower, duration, ticks):
         self.path = imagePath
-        self.rightMotorPower = tf.constant([rightMotorPower])
-        self.leftMotorPower = tf.constant([leftMotorPower])
-        self.duration = tf.constant([duration])
-        self.ticks = tf.constant([ticks])
+        self.rightMotorPower = np.array([rightMotorPower])
+        self.leftMotorPower = np.array([leftMotorPower])
+        self.duration = np.array([duration])
+        self.ticks = np.array([ticks])
 
     def to_tensor(self):
-        return tf.image.decode_jpeg(tf.read_file(self.path), Image.channels)
+        return tf.image.decode_jpeg(tf.read_file(self.path), Image.channels).eval()
 
     def to_flattened_tensor(self):
-        return tf.reshape(tf.image.decode_jpeg(tf.read_file(self.path), Image.channels), [-1, Image.image_width * Image.image_height * Image.channels])
+        return tf.reshape(self.to_tensor(), [-1]).eval()
