@@ -12,8 +12,8 @@ pixelCount = imageHeight * imageWidth
 # auxVariables = 4
 auxVariables = 3
 channels = 1
-epochs = 20000
-batchSize = 2
+epochs = 10000
+batchSize = 10
 
 
 # IMPORTING THE DATA
@@ -62,41 +62,41 @@ duration = tf.placeholder(tf.float32, shape=[None, 1])
 output_flattened_actual = tf.placeholder(tf.float32, shape=[None, pixelCount * channels])
 
 # W_conv1 = weight([4, 4, channels, 8])
-W_conv1 = weight([2, 2, channels, 8])
-b_conv1 = bias([8])
+W_conv1 = weight([2, 2, channels, 24])
+b_conv1 = bias([24])
 
 # h_conv1 = tf.nn.relu(conv2d(image, W_conv1, stride=4.0) + b_conv1)
 h_conv1 = tf.nn.relu(conv2d(image, W_conv1, stride=2.0) + b_conv1)
 h_pool1 = max_pool(h_conv1, 2)
 
-W_conv2 = weight([5, 5, 8, 16])
-b_conv2 = bias([16])
+W_conv2 = weight([5, 5, 24, 32])
+b_conv2 = bias([32])
 
 h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2, padding=2) + b_conv2)
 h_pool2 = max_pool(h_conv2, 4)
 
-W_conv3 = weight([3, 3, 16, 32])
-b_conv3 = bias([32])
+W_conv3 = weight([3, 3, 32, 64])
+b_conv3 = bias([64])
 
 h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3, padding=1) + b_conv3)
 
-W_conv4 = weight([3, 3, 32, 24])
-b_conv4 = bias([24])
+W_conv4 = weight([3, 3, 64, 32])
+b_conv4 = bias([32])
 
 h_conv4 = tf.nn.relu(conv2d(h_conv3, W_conv4, padding=1) + b_conv4)
 
-W_conv5 = weight([3, 3, 24, 16])
-b_conv5 = bias([16])
+W_conv5 = weight([3, 3, 32, 24])
+b_conv5 = bias([24])
 
 h_conv5 = tf.nn.relu(conv2d(h_conv4, W_conv5, padding=1) + b_conv5)
 
 h_pool3 = max_pool(h_conv5, 4)
 
-h_pool3_flat = tf.reshape(h_pool3, [-1, 11 * 11 * 16])
+h_pool3_flat = tf.reshape(h_pool3, [-1, 11 * 11 * 24])
 input_tensor_final = tf.concat(1, [h_pool3_flat, rightMotorPower, leftMotorPower, duration])
 
-W_fc1 = weight([11 * 11 * 16 + auxVariables, 2048])
-b_fc1 = bias([2048])
+W_fc1 = weight([11 * 11 * 24 + auxVariables, 2056])
+b_fc1 = bias([2056])
 
 h_fc1 = tf.nn.relu(tf.matmul(input_tensor_final, W_fc1) + b_fc1)
 
@@ -114,25 +114,27 @@ h_fc1_dropout = tf.nn.dropout(h_fc1, keep_prob_fc1)
 # W_fc3 = weight([4096, pixelCount * channels])
 # b_fc3 = bias([pixelCount * channels])
 
-W_fc3 = weight([2048, pixelCount * channels])
+W_fc3 = weight([2056, pixelCount * channels])
 b_fc3 = bias([pixelCount * channels])
 
 # output_flattened = tf.nn.relu(tf.matmul(h_fc2_dropout, W_fc3) + b_fc3)
 output_flattened = tf.nn.relu(tf.matmul(h_fc1_dropout, W_fc3) + b_fc3)
+
+normalizedOutput = tf.div(tf.sub(output_flattened, tf.reduce_min(output_flattened)), tf.sub(tf.reduce_max(output_flattened), tf.reduce_min(output_flattened))) * 255
 
 # This tensor is used for dividing all of the difference values by a denominator to get a fractional error
 denom_tensor = tf.fill([pixelCount * channels], 255.0)
 
 cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_flattened_actual * tf.log(output_flattened), reduction_indices=[1]))
 train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-accuracy = tf.constant(1.0) - tf.reduce_mean(tf.abs(tf.div(tf.sub(output_flattened_actual, output_flattened), denom_tensor)))
+accuracy = tf.constant(1.0) - tf.reduce_mean(tf.abs(tf.div(tf.sub(output_flattened_actual, normalizedOutput), denom_tensor)))
 
 session.run(tf.initialize_all_variables())
 
 for i in range(epochs):
     batch = DI.next_batch(batchSize)
 
-    if i - 100 == 0:
+    if i % 15 == 0:
         train_accuracy = accuracy.eval(feed_dict={
             image: batch[0],
             rightMotorPower: batch[1],
