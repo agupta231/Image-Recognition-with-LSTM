@@ -38,8 +38,8 @@ timeCount = 0.0
 logFile.write("0:0:0.0\n")
 
 while True:
-    leftMotorPower = random.randint(*random.choice([(-255, -25), (25, 255)]))
-    rightMotorPower = random.randint(*random.choice([(-255, -25), (25, 255)]))
+    leftMotorPower = random.randint(*random.choice([(-255, -100), (100, 255)]))
+    rightMotorPower = random.randint(*random.choice([(-255, -100), (100, 255)]))
 
     if TIME_RANDOM:
         sleepTime = (1 / FPS) * random.randint(MINIMUM_MULTIPLE, MAXIMUM_MULTIPLE)
