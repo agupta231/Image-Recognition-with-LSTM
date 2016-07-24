@@ -5,8 +5,9 @@ import random
 
 ser = serial.Serial('/dev/ttyACM0', 9600)
 
-DRIVE_TIME_MIN = 0.3
-DRIVE_TIME_MAX = 1.2
+FPS = 60.0
+MINIMUM_MULTIPLE = 20
+MAXIMUM_MULTIPLE = 125
 DRIVE_TIME_STANDARD = 0.75
 TIME_RANDOM = False
 
@@ -19,6 +20,12 @@ timeBetweenIntervals = raw_input("Time between frames: (rand for random)\n")
 
 if timeBetweenIntervals == "rand":
     TIME_RANDOM = True
+
+# Go forward a bit to sync the video and log files
+ser.write("255:255")
+time.sleep(1)
+
+ser.write("0:0")
 
 """
 --- Log File Format ---
@@ -35,7 +42,7 @@ while True:
     rightMotorPower = random.randint(*random.choice([(-255, -25), (25, 255)]))
 
     if TIME_RANDOM:
-        sleepTime = random.uniform(DRIVE_TIME_MIN, DRIVE_TIME_MAX)
+        sleepTime = (1 / FPS) * random.randint(MINIMUM_MULTIPLE, MAXIMUM_MULTIPLE)
     else:
         sleepTime = DRIVE_TIME_STANDARD
 
@@ -44,4 +51,4 @@ while True:
     timeCount += sleepTime
 
     ser.write(str(leftMotorPower) + ":" + str(rightMotorPower))
-    logFile.write(str(leftMotorPower) + ":" + str(rightMotorPower) + ":" + str(timeCount))
+    logFile.write(str(leftMotorPower) + ":" + str(rightMotorPower) + ":" + str(timeCount * 1000))
