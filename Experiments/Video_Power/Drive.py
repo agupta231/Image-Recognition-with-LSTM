@@ -52,3 +52,5 @@ while True:
 
     ser.write(str(leftMotorPower) + ":" + str(rightMotorPower))
     logFile.write(str(leftMotorPower) + ":" + str(rightMotorPower) + ":" + str(timeCount * 1000))
+
+    print "\n Right motor power: " + str(rightMotorPower) + "\n Left motor power: " + str(leftMotorPower) + "\n"
