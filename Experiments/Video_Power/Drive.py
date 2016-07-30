@@ -42,7 +42,7 @@ while True:
     rightMotorPower = random.randint(*random.choice([(-255, -100), (100, 255)]))
 
     if TIME_RANDOM:
-        sleepTime = (1 / FPS) * random.randint(MINIMUM_MULTIPLE, MAXIMUM_MULTIPLE)
+        sleepTime = (1.0 / FPS) * random.randint(MINIMUM_MULTIPLE, MAXIMUM_MULTIPLE)
     else:
         sleepTime = DRIVE_TIME_STANDARD
 
