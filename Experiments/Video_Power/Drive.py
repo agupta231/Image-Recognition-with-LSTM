@@ -10,6 +10,8 @@ MINIMUM_MULTIPLE = 40
 MAXIMUM_MULTIPLE = 325
 DRIVE_TIME_STANDARD = 0.75
 TIME_RANDOM = False
+MOTOR_POWER_MINIMUM = 200
+MOTOR_POWER_MAXIMUM = 255
 
 trial_name = raw_input("Trial Name:\n")
 
@@ -38,8 +40,8 @@ timeCount = 0.0
 logFile.write("0:0:0.0\n")
 
 while True:
-    leftMotorPower = random.randint(*random.choice([(-255, -100), (100, 255)]))
-    rightMotorPower = random.randint(*random.choice([(-255, -100), (100, 255)]))
+    leftMotorPower = random.randint(*random.choice([(-MOTOR_POWER_MAXIMUM, -MOTOR_POWER_MINIMUM), (MOTOR_POWER_MINIMUM, MOTOR_POWER_MAXIMUM)]))
+    rightMotorPower = random.randint(*random.choice([(-MOTOR_POWER_MAXIMUM, -MOTOR_POWER_MINIMUM), (MOTOR_POWER_MINIMUM, MOTOR_POWER_MAXIMUM)]))
 
     if TIME_RANDOM:
         sleepTime = (1.0 / FPS) * random.randint(MINIMUM_MULTIPLE, MAXIMUM_MULTIPLE)
