@@ -11,7 +11,7 @@ PIXEL_COUNT = IMAGE_WIDTH * IMAGE_HEIGHT * IMAGE_CHANNELS
 AUX_INPUTS = 2
 FRAME_FREQUENCY = 60
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.01
 TIME_STEPS = 2
 
 # [[Size, Layers], [Size, Layers]]
@@ -75,7 +75,7 @@ for i in range(len(RNN_SIZE)):
 
 for i in range(len(RNN_SIZE)):
     output, state = tf.nn.rnn(
-        tf.nn.rnn_cell.BasicLSTMCell(RNN_SIZE[i][0]),
+        cells[i],
         outputs[i],
         initial_state=states[i])
 
