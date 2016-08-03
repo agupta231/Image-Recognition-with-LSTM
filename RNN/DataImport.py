@@ -2,7 +2,6 @@ import tensorflow as tf
 import numpy as np
 import glob
 import random
-import os
 import pickle
 import re
 
@@ -10,14 +9,26 @@ class Image:
     channels = 1
     imageSize = 150
 
-    def __init__(self, imagePath, leftMotorPower, rightMotorPower):
+    def __init__(self, imagePath, leftMotorPower, rightMotorPower, frame_time):
         self.imagePath = imagePath
         self.leftMotorPower = leftMotorPower
         self.rightMotorPower = rightMotorPower
+        self.frameTime = frame_time
 
     def to_tensor(self):
         tensor = tf.image.decode_jpeg(tf.read_file(self.imagePath), Image.channels).eval()
-        return tf.reshape(tensor, [-1]).eval()
+        tensor_flattened = tf.reshape(tensor, [-1])
+
+        return tensor_flattened.eval()
+
+    def to_tensor_with_aux_info(self):
+        return tf.concat(0, [tf.to_float(self.__to_flattened_tensor()), np.array([self.leftMotorPower]), np.array([self.rightMotorPower])]).eval()
+
+    def __to_flattened_tensor(self):
+        return tf.reshape(self.to_tensor(), [-1])
+
+    def to_flattened_tensor_numpy(self):
+        return self.__to_flattened_tensor().eval()
 
 class DataImport:
     def __init__(self, framesFolder, chunksFolder):
@@ -49,7 +60,14 @@ class DataImport:
         frontDataArray = []
 
         for imagePath in frontImages:
-            frameTime = int(re.search(r'\d+', imagePath).group())
+            timeValues = []
+            pathSections = imagePath.split("/")
+
+            for string in pathSections:
+                if re.search(r'\d+', string) is not None:
+                    timeValues.append(int(re.search(r'\d+', string).group()))
+
+            frameTime = timeValues[-1]
 
             for i in xrange(len(motorPowerArray) - 1):
                 if frameTime >= motorPowerArray[i][0] and frameTime < motorPowerArray[i + 1][0]:
@@ -58,8 +76,11 @@ class DataImport:
                             imagePath,
                             motorPowerArray[i][1],
                             motorPowerArray[i][0],
+                            frameTime
                         )
                     )
+
+        frontDataArray = sorted(frontDataArray, key=lambda x: x.frameTime)
 
         chunk = open(self.chunksFolder + "/chunk" + str(len(glob.glob(self.chunksFolder + "/*"))), "wb")
         pickle.dump(frontDataArray, chunk)
@@ -71,7 +92,14 @@ class DataImport:
         backDataArray = []
 
         for imagePath in backImages:
-            frameTime = int(re.search(r'\d+', imagePath).group())
+            timeValues = []
+            pathSections = imagePath.split("/")
+
+            for string in pathSections:
+                if re.search(r'\d+', string) is not None:
+                    timeValues.append(int(re.search(r'\d+', string).group()))
+
+            frameTime = timeValues[-1]
 
             for i in xrange(len(motorPowerArray) - 1):
                 if frameTime >= motorPowerArray[i][0] and frameTime < motorPowerArray[i + 1][0]:
@@ -80,8 +108,11 @@ class DataImport:
                             imagePath,
                             -1 * motorPowerArray[i][0],
                             -1 * motorPowerArray[i][1],
+                            frameTime
                         )
                     )
+
+        backDataArray = sorted(backDataArray, key=lambda x: x.frameTime)
 
         chunk = open(self.chunksFolder + "/chunk" + str(len(glob.glob(self.chunksFolder + "/*"))), "wb")
         pickle.dump(backDataArray, chunk)
@@ -101,10 +132,10 @@ class DataImport:
             steps = []
 
             for j in range(timesteps):
-                steps.append(batch[i + j].to_tensor())
+                steps.append(batch[i + j].to_tensor_with_aux_info())
 
             input_images.append(steps)
-            output_images.append(batch[i + timesteps + 1])
+            output_images.append(batch[i + timesteps + 1].to_flattened_tensor_numpy())
 
         resultant_batch = [input_images, output_images]
         return resultant_batch
