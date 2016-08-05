@@ -35,6 +35,23 @@ class DataImport:
         self.framesFolder = framesFolder
         self.chunksFolder = chunksFolder
 
+    def _save_chunk(self, array):
+        CHUNK_SIZE = 1000
+
+        while (len(array) > CHUNK_SIZE + 10):
+            chunk = open(self.chunksFolder + "/chunk" + str(len(glob.glob(self.chunksFolder + "/*"))), "wb")
+            data = array[0: CHUNK_SIZE]
+
+            pickle.dump(data, chunk)
+
+            del array[0: CHUNK_SIZE]
+            chunk.close()
+
+        chunk = open(self.chunksFolder + "/chunk" + str(len(glob.glob(self.chunksFolder + "/*"))), "wb")
+        pickle.dump(array, chunk)
+
+        chunk.close()
+
     def importFolder(self, folderPath):
         motorPowerArray = []
 
@@ -81,11 +98,8 @@ class DataImport:
                     )
 
         frontDataArray = sorted(frontDataArray, key=lambda x: x.frameTime)
+        self._save_chunk(frontDataArray)
 
-        chunk = open(self.chunksFolder + "/chunk" + str(len(glob.glob(self.chunksFolder + "/*"))), "wb")
-        pickle.dump(frontDataArray, chunk)
-
-        chunk.close()
         del frontDataArray
 
         backImages = glob.glob(folderPath + "/back/" + self.framesFolder + "/*")
@@ -113,29 +127,28 @@ class DataImport:
                     )
 
         backDataArray = sorted(backDataArray, key=lambda x: x.frameTime)
+        self._save_chunk(backDataArray)
 
-        chunk = open(self.chunksFolder + "/chunk" + str(len(glob.glob(self.chunksFolder + "/*"))), "wb")
-        pickle.dump(backDataArray, chunk)
-        chunk.close()
+        del backDataArray
 
     def next_batch(self, size, timesteps):
-        chunk = open(self.chunksFolder + "/chunk" + str(random.randint(0, len(glob.glob(self.chunksFolder + "/*")) - 1)))
-        data = pickle.load(chunk)
-
-        batchStart = random.randint(0, len(data) - size - timesteps - 2)
-        batch = data[batchStart:batchStart + size + timesteps + 1]
-
         input_images = []
         output_images = []
 
         for i in range(size):
+            chunk = open(self.chunksFolder + "/chunk" + str(random.randint(0, len(glob.glob(self.chunksFolder + "/*")) - 1)))
+            data = pickle.load(chunk)
+
+            batchStart = random.randint(0, len(data) - timesteps - 2)
+            batch = data[batchStart:batchStart + timesteps]
+
             steps = []
 
             for j in range(timesteps):
-                steps.append(batch[i + j].to_tensor_with_aux_info())
+                steps.append(batch[j].to_tensor_with_aux_info())
 
             input_images.append(steps)
-            output_images.append(batch[i + timesteps + 1].to_flattened_tensor_numpy())
+            output_images.append(batch[timesteps].to_flattened_tensor_numpy())
 
         resultant_batch = [input_images, output_images]
         return resultant_batch
