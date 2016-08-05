@@ -36,7 +36,7 @@ class DataImport:
         self.chunksFolder = chunksFolder
 
     def _save_chunk(self, array):
-        CHUNK_SIZE = 1000
+        CHUNK_SIZE = 100
 
         while (len(array) > CHUNK_SIZE + 10):
             chunk = open(self.chunksFolder + "/chunk" + str(len(glob.glob(self.chunksFolder + "/*"))), "wb")
@@ -140,11 +140,13 @@ class DataImport:
             data = pickle.load(chunk)
 
             batchStart = random.randint(0, len(data) - timesteps - 2)
-            batch = data[batchStart:batchStart + timesteps]
+            batch = data[batchStart:batchStart + timesteps + 1]
 
             steps = []
 
             for j in range(timesteps):
+                print "Creating mini-batch step " + str(i) + " Timestep: " + str(j)
+
                 steps.append(batch[j].to_tensor_with_aux_info())
 
             input_images.append(steps)
