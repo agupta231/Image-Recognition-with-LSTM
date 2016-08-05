@@ -25,7 +25,6 @@ LOG_STEP = 5
 input_raw = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
 output_flattened = tf.placeholder(tf.float32, [BATCH_SIZE, PIXEL_COUNT])
 
-print input_raw
 
 cells = []
 outputs = []
@@ -38,7 +37,6 @@ DI.set_image_settings(IMAGE_WIDTH, IMAGE_CHANNELS)
 
 dataFolders = [path for path in glob.glob(os.getcwd() + "/*") if os.path.isdir(path) and not "chunks" in path and not "done" in path]
 for path in dataFolders:
-    print path
     DI.importFolder(path)
 
 def cell(size, layers):
@@ -53,7 +51,6 @@ def cell(size, layers):
     return lstm_cell_final
 
 inputs = [tf.reshape(i, (BATCH_SIZE, PIXEL_COUNT + AUX_INPUTS)) for i in tf.split(0, TIME_STEPS, input_raw)]
-print "Inputs length: " + str(len(inputs))
 outputs.append(inputs)
 
 # Data Initialization
@@ -84,19 +81,12 @@ for i in range(len(RNN_SIZE)):
 
 # Linear Activation Layer
 weightFinal = tf.Variable(tf.truncated_normal([RNN_SIZE[-1][0], PIXEL_COUNT], stddev=0.1))
-print weightFinal.get_shape()
-
 biasFinal = tf.Variable(tf.constant(0.1, shape=[PIXEL_COUNT]))
-print biasFinal.get_shape()
-
-print outputs[1]
 
 flattened = tf.nn.relu(tf.matmul(outputs[-1][-1], weightFinal) + biasFinal)
 
 # Normalize the data
 flattened_normal = tf.div(tf.sub(flattened, tf.reduce_min(flattened)), tf.sub(tf.reduce_max(flattened), tf.reduce_min(flattened))) * 255
-
-print flattened_normal
 
 denom_tensor = tf.fill([PIXEL_COUNT * IMAGE_CHANNELS], 255.0)
 
