@@ -145,8 +145,6 @@ class DataImport:
             steps = []
 
             for j in range(timesteps):
-                print "Creating mini-batch step " + str(i) + " Timestep: " + str(j)
-
                 steps.append(batch[j].to_tensor_with_aux_info())
 
             input_images.append(steps)
