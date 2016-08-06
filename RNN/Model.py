@@ -12,7 +12,7 @@ AUX_INPUTS = 2
 FRAME_FREQUENCY = 60
 
 LEARNING_RATE = 0.005
-TIME_STEPS = 2
+TIME_STEPS = 4
 
 # [[Size, Layers], [Size, Layers]]
 RNN_SIZE = [[64, 10]]
