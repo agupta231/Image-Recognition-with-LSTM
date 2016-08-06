@@ -30,6 +30,9 @@ class Image:
     def to_flattened_tensor_numpy(self):
         return self.__to_flattened_tensor().eval()
 
+    def to_2d_tensor(self):
+        return tf.image.decode_jpeg(tf.read_file(self.imagePath), Image.channels).eval()
+
 class DataImport:
     def __init__(self, framesFolder, chunksFolder):
         self.framesFolder = framesFolder
@@ -133,7 +136,8 @@ class DataImport:
 
     def next_batch(self, size, timesteps):
         input_images = []
-        output_images = []
+        output_images_flattened = []
+        output_images_2d = []
 
         for i in range(size):
             chunk = open(self.chunksFolder + "/chunk" + str(random.randint(0, len(glob.glob(self.chunksFolder + "/*")) - 1)))
@@ -148,9 +152,10 @@ class DataImport:
                 steps.append(batch[j].to_tensor_with_aux_info())
 
             input_images.append(steps)
-            output_images.append(batch[timesteps].to_flattened_tensor_numpy())
+            output_images_flattened.append(batch[timesteps].to_flattened_tensor_numpy())
+            output_images_2d.append(batch[timesteps].to_2d_tensor())
 
-        resultant_batch = [input_images, output_images]
+        resultant_batch = [input_images, output_images_flattened, output_images_2d]
         return resultant_batch
 
     def set_image_settings(self, imageSize, channels):

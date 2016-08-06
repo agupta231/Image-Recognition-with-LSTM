@@ -1,5 +1,6 @@
 import tensorflow as tf
 from DataImport import DataImport
+from DataCompare import DataCompare
 import os
 import glob
 
@@ -24,7 +25,7 @@ LOG_STEP = 5
 # Model Generation
 input_raw = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
 output_flattened = tf.placeholder(tf.float32, [BATCH_SIZE, PIXEL_COUNT])
-
+output_2d = tf.placeholder(tf.float32, [BATCH_SIZE, IMAGE_HEIGHT, IMAGE_WIDTH])
 
 cells = []
 outputs = []
@@ -94,7 +95,8 @@ denom_tensor = tf.fill([PIXEL_COUNT * IMAGE_CHANNELS], 255.0)
 cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_flattened * tf.log(tf.clip_by_value(flattened_normal, 1e-10, 1.0)), reduction_indices=[1]))
 train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
 
-accuracy = tf.reduce_mean(tf.abs(tf.div(tf.sub(output_flattened, flattened_normal), denom_tensor)))
+#accuracy = tf.reduce_mean(tf.abs(tf.div(tf.sub(output_flattened, flattened_normal), denom_tensor)))
+accuracy = DataCompare.edge_detection_ssim(tf.reshape(flattened_normal, [IMAGE_HEIGHT, IMAGE_WIDTH]).eval(), output_2d.eval())
 
 with tf.Session() as sess:
     sess.run(tf.initialize_all_variables())
@@ -105,7 +107,8 @@ with tf.Session() as sess:
         if i % LOG_STEP == 0:
             train_accuary = accuracy.eval(feed_dict={
                 input_raw: batch[0],
-                output_flattened: batch[1]
+                output_flattened: batch[1],
+                output_2d: batch[2]
             })
 
             print "Step " + str(i) + " Error " + str(train_accuary)
