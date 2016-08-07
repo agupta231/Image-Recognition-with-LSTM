@@ -12,20 +12,19 @@ PIXEL_COUNT = IMAGE_WIDTH * IMAGE_HEIGHT * IMAGE_CHANNELS
 AUX_INPUTS = 2
 FRAME_FREQUENCY = 60
 
-LEARNING_RATE = 0.005
-TIME_STEPS = 4
+LEARNING_RATE = 0.001
+TIME_STEPS = 2
 
 # [[Size, Layers], [Size, Layers]]
-RNN_SIZE = [[64, 10]]
+RNN_SIZE = [[32, 10]]
 
-BATCH_SIZE = 20
+BATCH_SIZE = 14
 ITERATIONS = 10000
 LOG_STEP = 5
 
 # Model Generation
 input_raw = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
 output_flattened = tf.placeholder(tf.float32, [BATCH_SIZE, PIXEL_COUNT])
-output_2d = tf.placeholder(tf.float32, [BATCH_SIZE, IMAGE_HEIGHT, IMAGE_WIDTH])
 
 cells = []
 outputs = []
@@ -89,14 +88,8 @@ flattened = tf.nn.relu(tf.matmul(outputs[-1][-1], weightFinal) + biasFinal)
 # Normalize the data
 flattened_normal = tf.div(tf.sub(flattened, tf.reduce_min(flattened)), tf.sub(tf.reduce_max(flattened), tf.reduce_min(flattened))) * 255
 
-denom_tensor = tf.fill([PIXEL_COUNT * IMAGE_CHANNELS], 255.0)
-
-#cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_flattened * tf.log(flattened_normal), reduction_indices=[1]))
 cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_flattened * tf.log(tf.clip_by_value(flattened_normal, 1e-10, 1.0)), reduction_indices=[1]))
 train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
-
-#accuracy = tf.reduce_mean(tf.abs(tf.div(tf.sub(output_flattened, flattened_normal), denom_tensor)))
-accuracy = DataCompare.edge_detection_ssim(tf.reshape(flattened_normal, [IMAGE_HEIGHT, IMAGE_WIDTH]).eval(), output_2d.eval())
 
 with tf.Session() as sess:
     sess.run(tf.initialize_all_variables())
@@ -105,13 +98,10 @@ with tf.Session() as sess:
         batch = DI.next_batch(BATCH_SIZE, TIME_STEPS)
 
         if i % LOG_STEP == 0:
-            train_accuary = accuracy.eval(feed_dict={
-                input_raw: batch[0],
-                output_flattened: batch[1],
-                output_2d: batch[2]
-            })
+            test_inputs = tf.reshape(flattened_normal, [BATCH_SIZE, IMAGE_HEIGHT, IMAGE_WIDTH]).eval(feed_dict={input_raw: batch[0], output_flattened: batch[1]})
+            accuracy = DataCompare.edge_detection_ssim(test_inputs, batch[2])
 
-            print "Step " + str(i) + " Error " + str(train_accuary)
+            print "Step " + str(i) + " Error " + str(accuracy)
 
         train_step.run(feed_dict={
             input_raw: batch[0],

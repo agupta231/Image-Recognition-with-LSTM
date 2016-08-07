@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-from skimage.measure import structural_similarity as ssim
+from skimage.measure import compare_ssim as ssim
 from skimage.feature import canny
 
 class DataCompare:
