@@ -63,7 +63,6 @@ for i in range(len(RNN_SIZE)):
     cells.append(ltsm)
 
     if i == 0:
-        print cells[0].state_size
         states.append(tf.zeros([BATCH_SIZE, cells[-1].state_size]))
     else:
         states.append(None)
@@ -95,6 +94,8 @@ with tf.Session() as sess:
     sess.run(tf.initialize_all_variables())
 
     for i in range(ITERATIONS):
+        print "Step " + str(i)
+
         batch = DI.next_batch(BATCH_SIZE, TIME_STEPS)
 
         if i % LOG_STEP == 0:
