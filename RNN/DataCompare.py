@@ -10,9 +10,9 @@ class DataCompare:
 
         self.figure = plot.figure("Images")
         self.plots = []
+        self.plot_names = ["Original", "Computed", "Heat Signature"]
 
-        self.generate_plots(["Original", "Computed", "Heat Signature"])
-
+        self.generate_plots()
     def ssim_compare(self, computed_image, actual_image):
         return (1.0 - ssim(computed_image, actual_image) + 1.0) / 2.0
 
@@ -35,8 +35,13 @@ class DataCompare:
                         image.clear()
 
                     self.plots[0].imshow(actual_image[i], cmap=plot.cm.gray)
+                    self.plots[0].set_title(self.plot_names[0])
+
                     self.plots[1].imshow(computed_image[i], cmap=plot.cm.gray)
+                    self.plots[1].set_title(self.plot_names[1])
+
                     self.plots[2].imshow(self.generate_heat_plot(actual_image[i], computed_image[i]), plot.cm.hot)
+                    self.plots[2].set_title(self.plot_names[2])
 
                     plot.pause(0.001)
 
@@ -46,10 +51,10 @@ class DataCompare:
             return edge_detection_ssim_final, pixel_by_pixel_final
 
     
-    def generate_plots(self, plots):
-        for i in xrange(len(plots)):
+    def generate_plots(self):
+        for i in xrange(len(self.plot_names)):
             self.plots.append(self.figure.add_subplot(2, 2, i + 1))
-            self.plots[-1].set_title(plots[i])
+            self.plots[-1].set_title(self.plot_names)
 
     def generate_heat_plot(self, actual_image, computed_image):
         actual_image_numpy = np.array(actual_image)
