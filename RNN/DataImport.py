@@ -31,7 +31,7 @@ class Image:
         return self.__to_flattened_tensor().eval()
 
     def to_2d_tensor(self):
-        return tf.image.decode_jpeg(tf.read_file(self.imagePath), Image.channels).eval()
+        return tf.squeeze(tf.to_float(tf.image.decode_jpeg(tf.read_file(self.imagePath), Image.channels))).eval()
 
 class DataImport:
     def __init__(self, framesFolder, chunksFolder):
