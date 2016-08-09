@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plot
 import matplotlib.animation as animation
-from skimage.measure import structural_similarity as ssim
+from skimage.measure import compare_ssim as ssim
 from skimage.feature import canny
 
 class DataCompare:
@@ -15,13 +15,13 @@ class DataCompare:
         self.generate_plots(["Original", "Computed", "Heat Signature"])
 
     def ssim_compare(self, computed_image, actual_image):
-        return (ssim(computed_image, actual_image) + 1.0) / 2.0
+        return (1.0 - ssim(computed_image, actual_image) + 1.0) / 2.0
 
     def edge_detection_ssim(self, computed_image, actual_image, sigma=0.75):
         computed_image_edges = canny(computed_image, sigma)
         actual_image_edges = canny(actual_image, sigma)
 
-        return (ssim(computed_image_edges, actual_image_edges) + 1.0) / 2.0
+        return (1.0 - ssim(computed_image_edges, actual_image_edges) + 1.0) / 2.0
 
     def mutli_accurary_compare(self, computed_image, actual_image, sigma=0.75):
             edge_detection_ssim_means = []
