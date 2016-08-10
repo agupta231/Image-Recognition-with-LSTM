@@ -1,6 +1,6 @@
 import tensorflow as tf
 from DataImport import DataImport
-from DataCompare import  DataCompare
+from DataCompare import DataCompare
 import os
 import glob
 
@@ -34,7 +34,7 @@ os.system("mkdir " + os.getcwd() + "/chunks")
 
 DC = DataCompare()
 
-DI = DataImport("resize150", os.getcwd() + "/chunks")
+DI = DataImport("edges_150_0.75", os.getcwd() + "/chunks")
 DI.set_image_settings(IMAGE_WIDTH, IMAGE_CHANNELS)
 
 dataFolders = [path for path in glob.glob(os.getcwd() + "/*") if os.path.isdir(path) and not "chunks" in path and not "done" in path]
@@ -101,9 +101,12 @@ with tf.Session() as sess:
         batch = DI.next_batch(BATCH_SIZE, TIME_STEPS)
 
         if i % LOG_STEP == 0:
-            test_inputs = tf.reshape(flattened_normal, [BATCH_SIZE, IMAGE_HEIGHT, IMAGE_WIDTH]).eval(feed_dict={input_raw: batch[0], output_flattened: batch[1]})
-            ssim, pixel_by_pixel = DC.mutli_accurary_compare(test_inputs, batch[2])
+            test_inputs = tf.reshape(flattened_normal, [BATCH_SIZE, IMAGE_HEIGHT, IMAGE_WIDTH]).eval(feed_dict={
+                input_raw: batch[0],
+                output_flattened: batch[1]
+            })
 
+            ssim, pixel_by_pixel = DC.mutli_accurary_compare(test_inputs, batch[2])
             print "Step " + str(i) + " SSIM: " + str(ssim) + " Pixel by pixel: " + str(pixel_by_pixel)
 
         train_step.run(feed_dict={

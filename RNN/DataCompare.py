@@ -27,7 +27,7 @@ class DataCompare:
             pixel_by_pixel_means = []
 
             for i in xrange(len(computed_image)):
-                edge_detection_ssim_means.append(self.edge_detection_ssim(computed_image[i], actual_image[i], sigma=sigma))
+                edge_detection_ssim_means.append(self.ssim_compare(computed_image[i], actual_image[i]))
                 pixel_by_pixel_means.append(self.pixel_by_pixel_compare(computed_image[i], actual_image[i]))
 
                 if i == (len(computed_image) - 1):
