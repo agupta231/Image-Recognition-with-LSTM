@@ -50,8 +50,13 @@ class new_thread(threading.Thread):
                 data = self.ser.readline()
                 data_array = data.split(":")
 
-                if int(data_array[0]) == 1:
-                    logFile.write(data_array[1] + ":" + data_array[2] + "\n")
+                print data
+
+                try:
+                    if int(data_array[0]) == 1:
+                        logFile.write(data_array[1] + ":" + data_array[2] + "\n")
+                except ValueError:
+                    print "Corrupted string \n"
 
 trial_name = raw_input("Trial Name:\n")
 
