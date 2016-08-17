@@ -23,7 +23,7 @@ class new_thread(threading.Thread):
         if self.process:
             logFile = open(trial_name + "_motor_powers.txt")
 
-            self.ser.write("0:0:0")
+            self.ser.write("0:0:0\n")
             logFile.write("0:0:0.0\n")
 
             current_time = datetime.now()
@@ -38,11 +38,14 @@ class new_thread(threading.Thread):
                 current_time_milli = (current_time.day * 24 * 60 * 60 + current_time.second) * 1000 + current_time.microsecond / 1000.0
                 delta = current_time_milli - time_baselime
 
-                self.ser.write("0:" + str(left_motor_power) + ":" + str(right_motor_power))
+                self.ser.write("0:" + str(left_motor_power) + ":" + str(right_motor_power) + "\n")
                 logFile.write(str(left_motor_power) + ":" + str(-1 * right_motor_power) + ":" + str(delta) + "\n")
 
         else:
             logFile = open(trial_name + "_ultrasonic_sensor_data.txt")
+
+            # Log File setup:
+            # time (ms) : sensor reading
 
             while True:
                 data = self.ser.readline()
