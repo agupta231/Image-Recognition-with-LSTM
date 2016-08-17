@@ -96,6 +96,7 @@ void loop() {
     }
   }
 
+  Serial.print("1:");
   Serial.print(time_count);
   Serial.print(":");
   Serial.println(sonar.ping_cm());
