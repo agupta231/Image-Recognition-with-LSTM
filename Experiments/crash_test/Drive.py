@@ -64,5 +64,7 @@ delegates = []
 delegates.append(new_thread(1, trial_name))
 delegates.append(new_thread(0, trial_name))
 
+serial.Serial('/dev/ttyACM0', 9600).write("2\n")
+
 for delegate in delegates:
     delegate.start()

@@ -94,6 +94,9 @@ void loop() {
       analogWrite(PWM_A, abs(leftMotorPower));
       analogWrite(PWM_B, abs(rightMotorPower));  
     }
+   if(serial_input.substring(0,1).toInt() == 2) {
+    time_count = 0;   
+   }
   }
 
   Serial.print("1:");
