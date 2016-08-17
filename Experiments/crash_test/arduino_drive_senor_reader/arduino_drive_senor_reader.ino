@@ -17,7 +17,7 @@ const int SNS_B = A1;
 
 const int period = 50;
 
-long time_count = 0L
+long time_count = 0L;
 int motors[] = {0, 0};
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
@@ -30,7 +30,7 @@ void parseSerial(String input, int motorValues[]) {
   
   for(int i = 0; i < input.length(); i++) {
     if(input.charAt(i) == seperator) {
-      leftMotorPower = input.substring(0, i).toInt();
+      leftMotorPower = input.substring(2, i).toInt();
       rightMotorPower = input.substring(i+1, input.length()).toInt();  
     }
   }
@@ -51,13 +51,14 @@ void setup() {
 
 void loop() {  
   if(Serial.available()) {    
-    parseSerial(Serial.readString(), serial_input);
+    String serial_input = Serial.readString();
+    
+    if(serial_input.substring(0,1).toInt() == 0) {
+      parseSerial(Serial.readString(), motors);
+      
+      int leftMotorPower = motors[1];
+      int rightMotorPower = -motors[2];
 
-    int process = serial_input[0]
-    int leftMotorPower = serial_input[1];
-    int rightMotorPower = -serial_input[2];
-
-    if(process == 0) {
       if(leftMotorPower > 0) {
         digitalWrite(BRAKE_A, LOW);
         digitalWrite(DIR_A, HIGH);
@@ -99,6 +100,6 @@ void loop() {
   Serial.print(":");
   Serial.println(sonar.ping_cm());
   
-  time_count += period
+  time_count += period;
   delay(period);
 }
