@@ -21,7 +21,7 @@ class new_thread(threading.Thread):
         trial_name = raw_input("Trial Name:\n")
 
         if self.process:
-            logFile = open(trial_name + "_motor_powers.txt")
+            logFile = open(trial_name + "_motor_powers.txt", "a")
 
             self.ser.write("0:0:0\n")
             logFile.write("0:0:0.0\n")
@@ -42,7 +42,7 @@ class new_thread(threading.Thread):
                 logFile.write(str(left_motor_power) + ":" + str(-1 * right_motor_power) + ":" + str(delta) + "\n")
 
         else:
-            logFile = open(trial_name + "_ultrasonic_sensor_data.txt")
+            logFile = open(trial_name + "_ultrasonic_sensor_data.txt", "a")
 
             # Log File setup:
             # time (ms) : sensor reading
