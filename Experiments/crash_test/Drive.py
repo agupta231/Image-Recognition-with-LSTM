@@ -6,10 +6,11 @@ import threading
 # If serial has 1 prefix, then code is going from arduino to raspberry pi
 
 class new_thread(threading.Thread):
-    def __init__(self, process, baud_rate=9600):
+    def __init__(self, process, trial_name, baud_rate=9600):
         threading.Thread.__init__(self)
         self.process = process
         self.baud_rate = baud_rate
+        self.trial_name = trial_name
 
         self.ser = serial.Serial('/dev/ttyACM0', self.baud_rate)
 
@@ -18,10 +19,8 @@ class new_thread(threading.Thread):
         # 1 - Motor Management
 
     def run(self):
-        trial_name = raw_input("Trial Name:\n")
-
         if self.process:
-            logFile = open(trial_name + "_motor_powers.txt", "a")
+            logFile = open(self.trial_name + "_motor_powers.txt", "a")
 
             self.ser.write("0:0:0\n")
             logFile.write("0:0:0.0\n")
@@ -42,7 +41,7 @@ class new_thread(threading.Thread):
                 logFile.write(str(left_motor_power) + ":" + str(-1 * right_motor_power) + ":" + str(delta) + "\n")
 
         else:
-            logFile = open(trial_name + "_ultrasonic_sensor_data.txt", "a")
+            logFile = open(self.trial_name + "_ultrasonic_sensor_data.txt", "a")
 
             # Log File setup:
             # time (ms) : sensor reading
@@ -54,9 +53,11 @@ class new_thread(threading.Thread):
                 if int(data_array[0]) == 1:
                     logFile.write(data_array[1] + ":" + data_array[2] + "\n")
 
+trial_name = raw_input("Trial Name:\n")
+
 delegates = []
-delegates.append(new_thread(1))
-delegates.append(new_thread(0))
+delegates.append(new_thread(1, trial_name))
+delegates.append(new_thread(0, trial_name))
 
 for delegate in delegates:
     delegate.start()
