@@ -66,3 +66,6 @@ serial.Serial('/dev/ttyACM0', 9600).write("2\n")
 
 for delegate in delegates:
     delegate.start()
+
+for delegate in delegates:
+    delegate.join()
