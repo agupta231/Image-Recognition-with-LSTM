@@ -56,8 +56,8 @@ void loop() {
     if(serial_input.substring(0,1).toInt() == 0) {
       parseSerial(Serial.readString(), motors);
       
-      int leftMotorPower = motors[1];
-      int rightMotorPower = -motors[2];
+      int leftMotorPower = motors[0];
+      int rightMotorPower = -motors[1];
 
       if(leftMotorPower > 0) {
         digitalWrite(BRAKE_A, LOW);
