@@ -38,23 +38,32 @@ class new_thread(threading.Thread):
                 delta = current_time_milli - time_baselime
 
                 self.ser.write("0:" + str(left_motor_power) + ":" + str(right_motor_power) + "\n")
+               	print("0:" + str(left_motor_power) + ":" + str(right_motor_power) + "\n")
                 logFile.write(str(left_motor_power) + ":" + str(-1 * right_motor_power) + ":" + str(delta) + "\n")
 
+
+		logFile.flush()
         else:
-            logFile = open(self.trial_name + "_ultrasonic_sensor_data.txt", "a")
+            log_file = open(self.trial_name + "_ultrasonic_sensor_data.txt", "a")
 
             # Log File setup:
             # time (ms) : sensor reading
 
             while True:
                 data = self.ser.readline()
-                data_array = data.split(":")
+      		data_array = data.split(":")
 
                 try:
                     if int(data_array[0]) == 1:
-                        logFile.write(data_array[1] + ":" + data_array[2])
-                except ValueError:
+                        log_file.write(data_array[1] + ":" + data_array[2])
+    			log_file.flush()
+			print data_array
+          
+		except ValueError:
                     print "Corrupted string \n"
+		
+		except IndexError:
+		    print "Index Error on String\n"
 
 trial_name = raw_input("Trial Name:\n")
 
