@@ -22,7 +22,7 @@ int motors[] = {0, 0};
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 
-void parseSerial(String input, int motorValues[]) {
+void parseSerial(String input, int motorValues[]) {  
   char seperator = ':';
   
   int leftMotorPower = 0;
@@ -52,9 +52,9 @@ void setup() {
 void loop() {  
   if(Serial.available()) {    
     String serial_input = Serial.readString();
-    
+        
     if(serial_input.substring(0,1).toInt() == 0) {
-      parseSerial(Serial.readString(), motors);
+      parseSerial(serial_input, motors);
       
       int leftMotorPower = motors[0];
       int rightMotorPower = -motors[1];
