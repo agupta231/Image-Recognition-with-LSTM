@@ -1,4 +1,4 @@
-from datetime import datetime
+import time
 import serial
 import threading
 
@@ -25,24 +25,19 @@ class new_thread(threading.Thread):
             self.ser.write("0:0:0\n")
             logFile.write("0:0:0.0\n")
 
-            current_time = datetime.now()
-            time_baselime = (current_time.day * 24 * 60 * 60 + current_time.second) * 1000 + current_time.microsecond / 1000.0
+            time_baselime = time.time() * 1000
 
             while True:
                 motor_power_raw = raw_input("Motor Power (Right [space] left:\n").split(" ")
                 right_motor_power = -1 * int(motor_power_raw[0])
                 left_motor_power = -1 * int(motor_power_raw[1])
 
-                current_time = datetime.now()
-                current_time_milli = (current_time.day * 24 * 60 * 60 + current_time.second) * 1000 + current_time.microsecond / 1000.0
-                delta = current_time_milli - time_baselime
+                delta = (time.time() * 1000) - time_baselime
 
                 self.ser.write("0:" + str(left_motor_power) + ":" + str(right_motor_power) + "\n")
-               	print("0:" + str(left_motor_power) + ":" + str(right_motor_power) + "\n")
                 logFile.write(str(left_motor_power) + ":" + str(-1 * right_motor_power) + ":" + str(delta) + "\n")
 
-
-		logFile.flush()
+                logFile.flush()
         else:
             log_file = open(self.trial_name + "_ultrasonic_sensor_data.txt", "a")
 
@@ -51,19 +46,18 @@ class new_thread(threading.Thread):
 
             while True:
                 data = self.ser.readline()
-      		data_array = data.split(":")
+                data_array = data.split(":")
 
                 try:
                     if int(data_array[0]) == 1:
                         log_file.write(data_array[1] + ":" + data_array[2])
-    			log_file.flush()
-			print data_array
-          
-		except ValueError:
+                        log_file.flush()
+
+                except ValueError:
                     print "Corrupted string \n"
-		
-		except IndexError:
-		    print "Index Error on String\n"
+
+                except IndexError:
+                    print "Index Error on String\n"
 
 trial_name = raw_input("Trial Name:\n")
 
