@@ -31,18 +31,17 @@ with open("motor_powers.txt") as logFile:
     motor_powers.append([float(data[2]), int(data[0]), int(data[1])])
 
 with open("ultrasonic_sensor_data.txt") as logFile:
-    line = logFile.readline()
-    data = line.split(":")
-
-    ultrasonic_data.append([int(data[0]), int(data[1])])
+    for line in logFile:
+        data = line.split(":")
+        ultrasonic_data.append([int(data[0]), int(data[1])])
 
 txt = None
 os.mkdir(os.getcwd() + "/figures/")
 
+print ultrasonic_data
+
 for i in range(len(glob.glob(os.getcwd() + "/raw/*"))):
     count = int((1000.0/60.0) * i)
-    print count
-
     ultrasonic_reading = -3
 
     for j in range(len(ultrasonic_data)):
@@ -55,6 +54,8 @@ for i in range(len(glob.glob(os.getcwd() + "/raw/*"))):
         elif count > ultrasonic_data[len(ultrasonic_data) - 1][0]:
             ultrasonic_reading = ultrasonic_data[len(ultrasonic_data) - 1][1]
             break
+
+    print str(count) + " " + str(ultrasonic_reading)
 
     try:
         image_raw = cv2.imread(os.getcwd() + "/raw/FRAME_" + str(count) + ".jpg")
