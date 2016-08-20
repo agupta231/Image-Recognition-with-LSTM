@@ -38,8 +38,6 @@ with open("ultrasonic_sensor_data.txt") as logFile:
 txt = None
 os.mkdir(os.getcwd() + "/figures/")
 
-print ultrasonic_data
-
 for i in range(len(glob.glob(os.getcwd() + "/raw/*"))):
     count = int((1000.0/60.0) * i)
     ultrasonic_reading = -3
