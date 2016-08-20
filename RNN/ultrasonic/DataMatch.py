@@ -38,27 +38,19 @@ with open("ultrasonic_sensor_data.txt") as logFile:
 txt = None
 os.mkdir(os.getcwd() + "/figures/")
 
-print ultrasonic_data
-
 for i in range(len(glob.glob(os.getcwd() + "/raw/*"))):
     count = int((1000.0/60.0) * i)
     ultrasonic_reading = -3
 
     for j in xrange(len(ultrasonic_data)):
         if count == ultrasonic_data[j][0]:
-            print ultrasonic_data[j][0]
             ultrasonic_reading = ultrasonic_data[j][1]
-            print "Top one"
             break
         elif count < ultrasonic_data[j][0]:
-            print ultrasonic_data[j][0]
             ultrasonic_reading = (ultrasonic_data[j - 1][1] + ultrasonic_data[j][1]) / 2
-            print "second one"
             break
         elif count > ultrasonic_data[len(ultrasonic_data) - 1][0]:
-            print ultrasonic_data[j][0]
             ultrasonic_reading = ultrasonic_data[len(ultrasonic_data) - 1][1]
-            print "third one"
             break
 
     print str(count) + " " + str(ultrasonic_reading)
