@@ -62,7 +62,7 @@ for i in range(len(glob.glob(os.getcwd() + "/raw/*"))):
         raw_image.imshow(image_raw)
         raw_image.set_title("Raw Image")
         edges_images.imshow(image_edges)
-        raw_image.set_title("Edges")
+        edges_images.set_title("Edges")
         txt = text.text(-0.5, 0, "Distance: " + str(ultrasonic_reading))
 
         figure.savefig("figures/FRAME_" + str(count) + ".png")
