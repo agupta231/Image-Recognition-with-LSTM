@@ -1,0 +1,19 @@
+import tensorflow as tf
+import os
+import glob
+import numpy as np
+
+
+# Setup parameters
+IMAGE_HEIGHT = 150
+IMAGE_WIDTH = 150
+IMAGE_CHANNELS = 1
+PIXEL_COUNT = IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
+AUX_INPUTS = 2
+FREQUENCY = 60
+
+LEARNING_RATE = 0.001
+TIME_STEPS = 4
+BATCH_SIZE = 16
+LOG_STEP = 10
+
