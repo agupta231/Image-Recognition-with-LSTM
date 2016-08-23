@@ -75,8 +75,11 @@ class DataImport:
                     break
 
         master_data_array = sorted(master_data_array, key=lambda x: x.count)
+        self._generate_chunks(master_data_array)
 
-    def _save_chunk(self, arg_array):
+        del master_data_array
+
+    def _generate_chunks(self, arg_array):
         chunk_cutoff = self.period * self.time_steps * 1000 + self.sets_per_chunk
         chunk_size = None
 
