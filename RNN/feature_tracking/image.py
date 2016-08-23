@@ -6,7 +6,8 @@ class Image:
     channels = 1
     image_size = 150
 
-    def __init__(self, image_path, left_motor_power, right_motor_power, distance):
+    def __init__(self, image_count, image_path, left_motor_power, right_motor_power, distance):
+        self.count = image_count
         self.image_path = image_path
         self.left_motor_power = left_motor_power
         self.right_motor_power = right_motor_power

@@ -5,13 +5,20 @@ import random
 import pickle
 import glob
 import re
+import os
 
 
 class DataImport:
-    def __init__(self, frames_folder, chunks_folder, distances_file):
+    def __init__(self, frames_folder, period, distances_file, threshold, batch_size, timesteps, sets_per_chunk=400):
         self.frames_folder = frames_folder
-        self.chunks_folder = chunks_folder
         self.distances_file = distances_file
+        self.period = period
+        self.sets_per_chunk = sets_per_chunk
+        self.time_steps = timesteps
+        self.threshold = threshold
+        self.batch_size = batch_size
+
+        os.mkdir(os.getcwd() + "/chunks")
 
     def import_folder(self, folder_path):
         master_data_array = []
@@ -64,5 +71,34 @@ class DataImport:
 
             for i in xrange(len(motor_powers)):
                 if frameTime >= motor_powers[i][0] and frameTime < motor_powers[i + 1][0]:
-                    master_data_array.append(Image(image_path, motor_powers[i][2], motor_powers[i][1], distance))
+                    master_data_array.append(Image(frameTime, image_path, motor_powers[i][2], motor_powers[i][1], distance))
                     break
+
+        master_data_array = sorted(master_data_array, key=lambda x: x.count)
+
+    def _save_chunk(self, arg_array):
+        chunk_cutoff = self.period * self.time_steps * 1000 + self.sets_per_chunk
+        chunk_size = None
+
+        while True:
+            if chunk_size is None:
+                for i in xrange(len(arg_array)):
+                    if i.count > chunk_cutoff:
+                        chunk_size = i
+
+            if len(arg_array) / chunk_size > 1:
+                chunk = open(os.getcwd() + "/chunks/chunk" + str(len(glob.glob(os.getcwd() + "/chunks/"))), "wb")
+                data = arg_array[0:chunk_size]
+
+                pickle.dump(data, chunk)
+
+                del arg_array[0:chunk_size]
+                chunk.close()
+            else:
+                chunk = open(os.getcwd() + "/chunks/chunk" + str(len(glob.glob(os.getcwd() + "/chunks/"))), "wb")
+                pickle.dump(arg_array, chunk)
+                chunk.close()
+                return
+
+    def next_batch(self):
+        pass
