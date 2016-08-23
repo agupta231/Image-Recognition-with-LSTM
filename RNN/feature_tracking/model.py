@@ -72,4 +72,6 @@ with tf.Session() as sess:
     numpy_state = initial_state.eval()
 
     for i in xrange(ITERATIONS):
-        pass
+        numpy_state, train_step = sess.run([numpy_state, train_step], feed_dict={
+
+        })
