@@ -6,10 +6,11 @@ class Image:
     channels = 1
     image_size = 150
 
-    def __init__(self, image_path, left_motor_power, right_motor_power):
+    def __init__(self, image_path, left_motor_power, right_motor_power, distance):
         self.image_path = image_path
         self.left_motor_power = left_motor_power
         self.right_motor_power = right_motor_power
+        self.distance = distance
 
     def to_tensor_with_aux_info(self):
         return tf.concat(0, [self._to_flattened_tensor(), np.array(self.left_motor_power), np.array(self.right_motor_power)]).eval()
