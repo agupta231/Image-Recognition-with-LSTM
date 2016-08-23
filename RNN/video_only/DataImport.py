@@ -59,8 +59,8 @@ class DataImport:
         motorPowerArray = []
 
         # time(MS) = motorPowerArray[i][0]
-        # rightMotorPower = motorPowerArray[i][0]
-        # leftMotorPower = motorPowerArray[i][1]
+        # rightMotorPower = motorPowerArray[i][1]
+        # leftMotorPower = motorPowerArray[i][2]
 
         with open(folderPath + "/LogFile.txt") as logFile:
             for line in logFile:
