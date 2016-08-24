@@ -108,8 +108,9 @@ class DataImport:
     def next_batch(self):
         input_sequences = []
         output_sequences = []
+        count = 0
 
-        for i in range(self.batch_size):
+        while count < self.batch_size:
             chunk = open(os.getcwd() + "/chunks/chunk" + str(random.randint(0, len(glob.glob(os.getcwd() + "/chunks/*")) - 1)))
             data = pickle.load(chunk)
 
@@ -132,6 +133,8 @@ class DataImport:
                     output_sequences.append(data[j].crash_one_hot())
                     break
 
-            input_sequences.append([batch_images[i].to_tensor_with_aux_info() for i in xrange(len(batch_images))])
+            if len(batch_images) == 4:
+                input_sequences.append([batch_images[i].to_tensor_with_aux_info() for i in xrange(len(batch_images))])
+                count += 1
 
         return [input_sequences, output_sequences]
