@@ -20,7 +20,7 @@ DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
 THRESHOLD = 30
 
 LEARNING_RATE = 0.001
-SEQUENCE_SPACING = 0.5 # In seconds
+SEQUENCE_SPACING = 0.512  # In seconds
 TIME_STEPS = 4
 BATCH_SIZE = 16
 LOG_STEP = 10
@@ -28,14 +28,19 @@ ITERATIONS = 10000
 
 CELL_SIZE = 128
 CELL_LAYERS = 10
-HIDDEN_SIZE = 900
+HIDDEN_SIZE = 512
 OUTPUT_SIZE = 2
+
+REGENERATE_CHUNKS = False
 
 DI = DataImport(FRAMES_FOLDER, SEQUENCE_SPACING, DISTANCE_DATA, THRESHOLD, BATCH_SIZE, TIME_STEPS, channels=IMAGE_CHANNELS, image_size=IMAGE_WIDTH)
 
-dataFolders = [path for path in glob.glob(os.getcwd() + "/*") if os.path.isdir(path) and not "chunks" in path and not "done" in path]
-for path in dataFolders:
-    DI.import_folder(path)
+if REGENERATE_CHUNKS:
+    os.mkdir(os.getcwd() + "/chunks")
+
+    dataFolders = [path for path in glob.glob(os.getcwd() + "/*") if os.path.isdir(path) and not "chunks" in path and not "done" in path]
+    for path in dataFolders:
+        DI.import_folder(path)
 
 # Helper functions
 def create_weight(shape):
@@ -49,11 +54,11 @@ def create_bias(shape):
 
 
 # The actual model
-input_sequence = tf.placeholder(tf.int8, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
-output_actual = tf.placeholder(tf.int8, [BATCH_SIZE, OUTPUT_SIZE])
+input_sequence = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
+output_actual = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
 
-lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(CELL_SIZE, state_is_tuple=True)
-stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_tuple=True)
+lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(CELL_SIZE, state_is_tuple=False)
+stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_tuple=False)
 
 initial_state = state = stacked_lstm.zero_state(BATCH_SIZE, tf.float32)
 outputs = []
@@ -74,7 +79,7 @@ softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
 prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
 
 cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
-train_step = tf.train.AdamOptimizer(LEARNING_RATE).minimize(cross_entropy)
+train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
 correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
@@ -94,8 +99,8 @@ with tf.Session() as sess:
 
             print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
 
-        numpy_state, train_step = sess.run([numpy_state, train_step], feed_dict={
+        numpy_state, _ = sess.run([final_state, train_step], feed_dict={
             initial_state: numpy_state,
             input_sequence: batch[0],
             output_actual: batch[1]
-        })
+            })

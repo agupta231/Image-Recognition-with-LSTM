@@ -88,7 +88,7 @@ class DataImport:
             if chunk_size is None:
                 for i in xrange(len(arg_array)):
                     if arg_array[i].count > chunk_cutoff:
-                        chunk_size = i + self.sets_per_chunk
+                        chunk_size = i + self.sets_per_chunk + 50
                         break
 
             if len(arg_array) / chunk_size > 1:
