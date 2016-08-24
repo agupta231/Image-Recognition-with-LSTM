@@ -105,8 +105,8 @@ class DataImport:
                 return
 
     def next_batch(self):
-        input_sequences_raw = []
-        output_sequences_raw = []
+        input_sequences = []
+        output_sequences = []
 
         for i in range(self.batch_size):
             chunk = open(os.getcwd() + "/chunks/chunk" + str(random.randint(0, len(glob.glob(os.getcwd() + "/chunks/*")) - 1)))
@@ -127,9 +127,9 @@ class DataImport:
 
             for j in xrange(previous_key, len(data)):
                 if data[j].count == batch_times[-1]:
-                    output_sequences_raw.append(data[j].crash_one_hot())
+                    output_sequences.append(data[j].crash_one_hot())
                     break
 
-            input_sequences_raw.append([batch_images[i].to_tensor_with_aux_info() for i in xrange(len(batch_images))])
+            input_sequences.append([batch_images[i].to_tensor_with_aux_info() for i in xrange(len(batch_images))])
 
-        return [input_sequences_raw, output_sequences_raw]
+        return [input_sequences, output_sequences]
