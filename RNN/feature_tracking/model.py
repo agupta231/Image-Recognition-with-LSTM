@@ -83,6 +83,19 @@ with tf.Session() as sess:
     numpy_state = initial_state.eval()
 
     for i in xrange(ITERATIONS):
-        numpy_state, train_step = sess.run([numpy_state, train_step], feed_dict={
+        batch = DI.next_batch()
 
+        if i % LOG_STEP == 0:
+            train_accuracy = accuracy.eval(feed_dict={
+                initial_state: numpy_state,
+                input_sequence: batch[0],
+                output_actual: batch[1]
+            })
+
+            print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
+
+        numpy_state, train_step = sess.run([numpy_state, train_step], feed_dict={
+            initial_state: numpy_state,
+            input_sequence: batch[0],
+            output_actual: batch[1]
         })
