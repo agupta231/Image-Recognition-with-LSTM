@@ -1,7 +1,8 @@
+from data_import import DataImport
 import tensorflow as tf
-import os
-import glob
 import numpy as np
+import glob
+import os
 
 # Setup seed
 np.random.seed(420)
@@ -14,7 +15,12 @@ PIXEL_COUNT = IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
 AUX_INPUTS = 2
 FREQUENCY = 60
 
+FRAMES_FOLDER = "edges_1.75"
+DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
+THRESHOLD = 30
+
 LEARNING_RATE = 0.001
+SEQUENCE_SPACING = 0.5 # In seconds
 TIME_STEPS = 4
 BATCH_SIZE = 16
 LOG_STEP = 10
@@ -25,6 +31,11 @@ CELL_LAYERS = 10
 HIDDEN_SIZE = 900
 OUTPUT_SIZE = 2
 
+DI = DataImport(FRAMES_FOLDER, SEQUENCE_SPACING, DISTANCE_DATA, THRESHOLD, BATCH_SIZE, TIME_STEPS, channels=IMAGE_CHANNELS, image_size=IMAGE_WIDTH)
+
+dataFolders = [path for path in glob.glob(os.getcwd() + "/*") if os.path.isdir(path) and not "chunks" in path and not "done" in path]
+for path in dataFolders:
+    DI.import_folder(path)
 
 # Helper functions
 def create_weight(shape):
