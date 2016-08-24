@@ -9,7 +9,7 @@ import os
 
 
 class DataImport:
-    def __init__(self, frames_folder, period, distances_file, threshold, batch_size, timesteps, sets_per_chunk=400, channels=1, image_size=150):
+    def __init__(self, frames_folder, period, distances_file, threshold, batch_size, timesteps, sets_per_chunk=200, channels=1, image_size=150):
         self.frames_folder = frames_folder
         self.distances_file = distances_file
         self.period = period
@@ -19,7 +19,6 @@ class DataImport:
         self.batch_size = batch_size
 
         Image.set_parameters(channels, image_size, self.threshold)
-        os.mkdir(os.getcwd() + "/chunks")
 
     def import_folder(self, folder_path):
         master_data_array = []
@@ -31,7 +30,7 @@ class DataImport:
 
         with open(folder_path + "/motor_powers.txt") as log_file:
             for line in log_file:
-                line_data = log_file.split(":")
+                line_data = line.split(":")
 
                 motor_powers.append([
                     float(line_data[2]),
@@ -56,13 +55,14 @@ class DataImport:
         files = glob.glob(folder_path + "/" + self.frames_folder + "/*")
 
         for image_path in files:
-            path_sections = []
+            path_sections = image_path.split("/")
+            int_array = []
 
-            for string in image_path:
+            for string in path_sections:
                 if re.search(r'\d+', string) is not None:
-                    path_sections.append(int(re.search(r'\d+', string).group()))
+                    int_array.append(int(re.search(r'\d+', string).group()))
 
-            frameTime = path_sections[-1]
+            frameTime = int_array[-1]
             distance = None
 
             for i in xrange(len(distance_readings)):
@@ -81,17 +81,18 @@ class DataImport:
         del master_data_array
 
     def _generate_chunks(self, arg_array):
-        chunk_cutoff = self.period * (self.time_steps + 1) * 1000 + self.sets_per_chunk
+        chunk_cutoff = self.period * (self.time_steps + 1) * 1000
         chunk_size = None
 
         while True:
             if chunk_size is None:
                 for i in xrange(len(arg_array)):
-                    if i.count > chunk_cutoff:
-                        chunk_size = i
+                    if arg_array[i].count > chunk_cutoff:
+                        chunk_size = i + self.sets_per_chunk
+                        break
 
             if len(arg_array) / chunk_size > 1:
-                chunk = open(os.getcwd() + "/chunks/chunk" + str(len(glob.glob(os.getcwd() + "/chunks/"))), "wb")
+                chunk = open(os.getcwd() + "/chunks/chunk" + str(len(glob.glob(os.getcwd() + "/chunks/*"))), "wb")
                 data = arg_array[0:chunk_size]
 
                 pickle.dump(data, chunk)
@@ -99,7 +100,7 @@ class DataImport:
                 del arg_array[0:chunk_size]
                 chunk.close()
             else:
-                chunk = open(os.getcwd() + "/chunks/chunk" + str(len(glob.glob(os.getcwd() + "/chunks/"))), "wb")
+                chunk = open(os.getcwd() + "/chunks/chunk" + str(len(glob.glob(os.getcwd() + "/chunks/*"))), "wb")
                 pickle.dump(arg_array, chunk)
                 chunk.close()
                 return
@@ -112,20 +113,21 @@ class DataImport:
             chunk = open(os.getcwd() + "/chunks/chunk" + str(random.randint(0, len(glob.glob(os.getcwd() + "/chunks/*")) - 1)))
             data = pickle.load(chunk)
 
-            batch_end = random.randint(len(data) - self.sets_per_chunk - 1, len(data))
-            batch_times = [data[batch_end].count - self.period * 1000 * i for i in xrange(self.time_steps)]
+            batch_end = random.randint(len(data) - self.sets_per_chunk, len(data) - 1)
+
+            batch_times = [int(data[batch_end].count - (self.period * 1000 * i)) for i in xrange(self.time_steps + 1)]
             batch_times = list(reversed(batch_times))
 
             batch_images = []
             previous_key = 0
             for time in batch_times[:len(batch_times) - 1]:
-                for j in xrange(previous_key, len(data)):
-                    if data[j].count == time:
+                for j in xrange(previous_key, len(data) - 1):
+                    if abs(data[j].count - time) <= 10:
                         batch_images.append(data[j])
-                        previous_key = j
+                        previous_key = j + 1
                         break
 
-            for j in xrange(previous_key, len(data)):
+            for j in xrange(previous_key, len(data) - 1):
                 if data[j].count == batch_times[-1]:
                     output_sequences.append(data[j].crash_one_hot())
                     break
