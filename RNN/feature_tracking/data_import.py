@@ -9,7 +9,7 @@ import os
 
 
 class DataImport:
-    def __init__(self, frames_folder, period, distances_file, threshold, batch_size, timesteps, sets_per_chunk=400):
+    def __init__(self, frames_folder, period, distances_file, threshold, batch_size, timesteps, sets_per_chunk=400, channels=1, image_size=150):
         self.frames_folder = frames_folder
         self.distances_file = distances_file
         self.period = period
@@ -18,6 +18,7 @@ class DataImport:
         self.threshold = threshold
         self.batch_size = batch_size
 
+        Image.set_parameters(channels, image_size, self.threshold)
         os.mkdir(os.getcwd() + "/chunks")
 
     def import_folder(self, folder_path):
@@ -80,7 +81,7 @@ class DataImport:
         del master_data_array
 
     def _generate_chunks(self, arg_array):
-        chunk_cutoff = self.period * self.time_steps * 1000 + self.sets_per_chunk
+        chunk_cutoff = self.period * (self.time_steps + 1) * 1000 + self.sets_per_chunk
         chunk_size = None
 
         while True:
@@ -104,4 +105,31 @@ class DataImport:
                 return
 
     def next_batch(self):
-        pass
+        input_sequences_raw = []
+        output_sequences_raw = []
+
+        for i in range(self.batch_size):
+            chunk = open(os.getcwd() + "/chunks/chunk" + str(random.randint(0, len(glob.glob(os.getcwd() + "/chunks/*")) - 1)))
+            data = pickle.load(chunk)
+
+            batch_end = random.randint(len(data) - self.sets_per_chunk - 1, len(data))
+            batch_times = [data[batch_end].count - self.period * 1000 * i for i in xrange(self.time_steps)]
+            batch_times = list(reversed(batch_times))
+
+            batch_images = []
+            previous_key = 0
+            for time in batch_times[:len(batch_times) - 1]:
+                for j in xrange(previous_key, len(data)):
+                    if data[j].count == time:
+                        batch_images.append(data[j])
+                        previous_key = j
+                        break
+
+            for j in xrange(previous_key, len(data)):
+                if data[j].count == batch_times[-1]:
+                    output_sequences_raw.append(data[j].crash_one_hot())
+                    break
+
+            input_sequences_raw.append([batch_images[i].to_tensor_with_aux_info() for i in xrange(len(batch_images))])
+
+        return [input_sequences_raw, output_sequences_raw]
