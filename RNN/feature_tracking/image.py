@@ -5,6 +5,7 @@ import numpy as np
 class Image:
     channels = 1
     image_size = 150
+    threshold = 30
 
     def __init__(self, image_count, image_path, left_motor_power, right_motor_power, distance):
         self.count = image_count
@@ -26,6 +27,7 @@ class Image:
         return tf.reshape(self._to_tensor(), [-1])
 
     @staticmethod
-    def set_parameters(channels, image_size):
+    def set_parameters(channels, image_size, threshold):
         Image.channels = channels
         Image.image_size = image_size
+        Image.threshold = threshold
