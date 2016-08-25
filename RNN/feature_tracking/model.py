@@ -20,10 +20,10 @@ DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
 THRESHOLD = 30
 
 LEARNING_RATE = 0.001
-SEQUENCE_SPACING = 0.512  # In seconds
+SEQUENCE_SPACING = 1.024  # In seconds
 TIME_STEPS = 4
-BATCH_SIZE = 16
-LOG_STEP = 10
+BATCH_SIZE = 32
+LOG_STEP = 1
 ITERATIONS = 10000
 
 CELL_SIZE = 128
@@ -31,12 +31,13 @@ CELL_LAYERS = 10
 HIDDEN_SIZE = 512
 OUTPUT_SIZE = 2
 
-REGENERATE_CHUNKS = False
+REGENERATE_CHUNKS = True
 
 DI = DataImport(FRAMES_FOLDER, SEQUENCE_SPACING, DISTANCE_DATA, THRESHOLD, BATCH_SIZE, TIME_STEPS, channels=IMAGE_CHANNELS, image_size=IMAGE_WIDTH)
 
 if REGENERATE_CHUNKS:
     os.mkdir(os.getcwd() + "/chunks")
+
 
     dataFolders = [path for path in glob.glob(os.getcwd() + "/*") if os.path.isdir(path) and not "chunks" in path and not "done" in path]
     for path in dataFolders:
