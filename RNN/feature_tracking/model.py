@@ -23,7 +23,7 @@ LEARNING_RATE = 0.001
 SEQUENCE_SPACING = 0.512  # In seconds
 TIME_STEPS = 4
 BATCH_SIZE = 16
-LOG_STEP = 10
+LOG_STEP = 5
 ITERATIONS = 10000
 
 CELL_SIZE = 128
@@ -32,6 +32,9 @@ HIDDEN_SIZE = 512
 OUTPUT_SIZE = 2
 
 REGENERATE_CHUNKS = False
+
+summary_save_dir = os.getcwd() + "/summaries/" + FRAMES_FOLDER + "_" + DISTANCE_DATA + "_lr" + str(LEARNING_RATE) + "_bs" + str(BATCH_SIZE) + "_ts" + str(TIME_STEPS) + "_" + str(CELL_SIZE) + "x" + str(CELL_LAYERS) + "x" + str(HIDDEN_SIZE)
+os.mkdir(summary_save_dir)
 
 DI = DataImport(FRAMES_FOLDER, SEQUENCE_SPACING, DISTANCE_DATA, THRESHOLD, BATCH_SIZE, TIME_STEPS, channels=IMAGE_CHANNELS, image_size=IMAGE_WIDTH)
 
@@ -83,23 +86,31 @@ train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_
 correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-with tf.Session() as sess:
-    sess.run(tf.initialize_all_variables())
+tf.scalar_summary('accuracy', accuracy)
+tf.scalar_summary('cross entropy', cross_entropy)
+
+merged = tf.merge_all_summaries()
+
+with tf.Session as session:
+    train_writer = tf.train.SummaryWriter(summary_save_dir, session.graph)
+
+    session.run(tf.initialize_all_variables())
     numpy_state = initial_state.eval()
 
     for i in xrange(ITERATIONS):
         batch = DI.next_batch()
 
         if i % LOG_STEP == 0:
-            train_accuracy = accuracy.eval(feed_dict={
+            train_accuracy, summary = session.run([accuracy, merged], feed_dict={
                 initial_state: numpy_state,
                 input_sequence: batch[0],
                 output_actual: batch[1]
             })
+            train_writer.add_summary(summary, i)
 
             print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
 
-        numpy_state, _ = sess.run([final_state, train_step], feed_dict={
+        numpy_state, _ = session.run([final_state, train_step], feed_dict={
             initial_state: numpy_state,
             input_sequence: batch[0],
             output_actual: batch[1]
