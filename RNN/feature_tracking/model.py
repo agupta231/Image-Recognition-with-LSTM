@@ -22,8 +22,8 @@ THRESHOLD = 30
 LEARNING_RATE = 0.001
 SEQUENCE_SPACING = 1.024  # In seconds
 TIME_STEPS = 4
-BATCH_SIZE = 32
-LOG_STEP = 1
+BATCH_SIZE = 16
+LOG_STEP = 5
 ITERATIONS = 10000
 
 CELL_SIZE = 128
@@ -33,7 +33,7 @@ OUTPUT_SIZE = 2
 
 REGENERATE_CHUNKS = True
 
-summary_save_dir = os.getcwd() + "/summaries/" + FRAMES_FOLDER + "_" + DISTANCE_DATA + "_lr" + str(LEARNING_RATE) + "_bs" + str(BATCH_SIZE) + "_ts" + str(TIME_STEPS) + "_p" + str(SEQUENCE_SPACING) + "_cs" + str(CELL_SIZE) + "x" + str(CELL_LAYERS) + "x" + str(HIDDEN_SIZE)
+summary_save_dir = os.getcwd() + "/summaries/" + FRAMES_FOLDER + "_" + DISTANCE_DATA + "_lr" + str(LEARNING_RATE) + "_t" + str(THRESHOLD) + "_bs" + str(BATCH_SIZE) + "_ts" + str(TIME_STEPS) + "_p" + str(SEQUENCE_SPACING) + "_cs" + str(CELL_SIZE) + "x" + str(CELL_LAYERS) + "x" + str(HIDDEN_SIZE)
 os.mkdir(summary_save_dir)
 
 DI = DataImport(FRAMES_FOLDER, SEQUENCE_SPACING, DISTANCE_DATA, THRESHOLD, BATCH_SIZE, TIME_STEPS, channels=IMAGE_CHANNELS, image_size=IMAGE_WIDTH)
