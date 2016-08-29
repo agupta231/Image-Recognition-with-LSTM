@@ -103,6 +103,8 @@ class Model(threading.Thread):
         correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
+        tf.histogram_summary("softmax weights", softmax_w)
+        tf.histogram_summary("softmax biases", softmax_b)
         tf.scalar_summary('accuracy', accuracy)
         tf.scalar_summary('cross entropy', cross_entropy)
 
