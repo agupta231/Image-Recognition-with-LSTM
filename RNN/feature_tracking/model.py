@@ -22,13 +22,13 @@ THRESHOLD = 30
 LEARNING_RATE = 0.001
 SEQUENCE_SPACING = 0.512  # In seconds
 TIME_STEPS = 4
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 LOG_STEP = 5
 ITERATIONS = 10000
 
-CELL_SIZE = 128
+CELL_SIZE = 256
 CELL_LAYERS = 10
-HIDDEN_SIZE = 512
+HIDDEN_SIZE = 256
 OUTPUT_SIZE = 2
 
 REGENERATE_CHUNKS = False
@@ -75,7 +75,12 @@ with tf.variable_scope("LSTM"):
 
 final_state = state
 
-output = tf.reshape(tf.concat(1, outputs), [-1, HIDDEN_SIZE])
+print outputs[-1]
+
+# output = tf.reshape(tf.concat(1, outputs), [-1, HIDDEN_SIZE])
+output = tf.reshape(outputs[-1], [BATCH_SIZE, HIDDEN_SIZE])
+
+print output
 
 softmax_w = tf.get_variable("softmax_w", [HIDDEN_SIZE, OUTPUT_SIZE], dtype=tf.float32)
 softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
@@ -91,7 +96,7 @@ tf.scalar_summary('cross entropy', cross_entropy)
 
 merged = tf.merge_all_summaries()
 
-with tf.Session as session:
+with tf.Session() as session:
     train_writer = tf.train.SummaryWriter(summary_save_dir, session.graph)
 
     session.run(tf.initialize_all_variables())
