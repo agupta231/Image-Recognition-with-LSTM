@@ -40,6 +40,14 @@ os.mkdir(summary_save_dir)
 
 DI = DataImport(FRAMES_FOLDER, SEQUENCE_SPACING, DISTANCE_DATA, THRESHOLD, BATCH_SIZE, TIME_STEPS, channels=IMAGE_CHANNELS, image_size=IMAGE_WIDTH)
 
+if REGENERATE_CHUNKS:
+    os.mkdir(os.getcwd() + "/chunks")
+
+    dataFolders = [path for path in glob.glob(os.getcwd() + "/*") if
+                   os.path.isdir(path) and not "chunks" in path and not "done" in path]
+    for path in dataFolders:
+        DI.import_folder(path)
+
 
 class Model(threading.Thread):
     def __init__(self, q, job):
@@ -54,13 +62,6 @@ class Model(threading.Thread):
             self.rnn()
 
     def rnn(self):
-        if REGENERATE_CHUNKS:
-            os.mkdir(os.getcwd() + "/chunks")
-
-            dataFolders = [path for path in glob.glob(os.getcwd() + "/*") if os.path.isdir(path) and not "chunks" in path and not "done" in path]
-            for path in dataFolders:
-                DI.import_folder(path)
-
         # Helper functions
         def create_weight(shape):
             initial = tf.truncated_normal(shape=shape, stddev=0.1)
