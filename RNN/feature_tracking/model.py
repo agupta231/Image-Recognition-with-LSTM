@@ -51,14 +51,17 @@ if REGENERATE_CHUNKS:
 # Helper functions
 def load_batch(sess, coord, op):
     while not coord.should_stop():
-        sess.run(op, feed_dict={queue_input: DI.next_batch()})
+        batch = DI.next_batch()
+
+        sess.run(op, feed_dict={queue_input: batch[0], queue_output: batch[1]})
 
 
 # The actual model
-queue_input = tf.placeholder(tf.float32, [])
-queue = tf.RandomShuffleQueue(25, 2, tf.float32)
+queue_input = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
+queue_output = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
+queue = tf.RandomShuffleQueue(25, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
 
-queue_op = queue.enqueue(queue_input)
+queue_op = queue.enqueue([queue_input, queue_output])
 
 # input_sequence = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
 # output_actual = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])

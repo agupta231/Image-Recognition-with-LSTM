@@ -1,4 +1,4 @@
-from image import Image
+from frame import Frame
 import tensorflow as tf
 import numpy as np
 import random
@@ -18,7 +18,7 @@ class DataImport:
         self.threshold = threshold
         self.batch_size = batch_size
 
-        Image.set_parameters(channels, image_size, self.threshold)
+        Frame.set_parameters(channels, image_size, self.threshold)
 
     def import_folder(self, folder_path):
         master_data_array = []
@@ -72,7 +72,7 @@ class DataImport:
 
             for i in xrange(len(motor_powers)):
                 if frameTime >= motor_powers[i][0] and frameTime < motor_powers[i + 1][0]:
-                    master_data_array.append(Image(frameTime, image_path, motor_powers[i][2], motor_powers[i][1], distance))
+                    master_data_array.append(Frame(frameTime, image_path, motor_powers[i][2], motor_powers[i][1], distance))
                     break
 
         master_data_array = sorted(master_data_array, key=lambda x: x.count)
