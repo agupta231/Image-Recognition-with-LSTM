@@ -44,25 +44,29 @@ if REGENERATE_CHUNKS:
     os.mkdir(os.getcwd() + "/chunks")
 
     dataFolders = [path for path in glob.glob(os.getcwd() + "/*") if
-                   os.path.isdir(path) and not "chunks" in path and not "done" in path]
+                   os.path.isdir(path) and not "chunks" in path and not "summaries" in path]
     for path in dataFolders:
         DI.import_folder(path)
 
 
 # Helper functions
-def create_weight(shape):
-    initial = tf.truncated_normal(shape=shape, stddev=0.1)
-    return tf.Variable(initial)
-
-
-def create_bias(shape):
-    initial = tf.constant(0.1, shape=shape)
-    return tf.Variable(initial)
+def load_batch(sess, coord, op):
+    while not coord.should_stop():
+        sess.run(op, feed_dict={queue_input: DI.next_batch()})
 
 
 # The actual model
-input_sequence = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
-output_actual = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
+queue_input = tf.placeholder(tf.float32, [])
+queue = tf.RandomShuffleQueue(25, 2, tf.float32)
+
+queue_op = queue.enqueue(queue_input)
+
+# input_sequence = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
+# output_actual = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
+
+raw = queue.dequeue()
+input_sequence = raw[0]
+output_actual = raw[1]
 
 lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(CELL_SIZE, state_is_tuple=False)
 stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_tuple=False)
@@ -100,25 +104,26 @@ merged = tf.merge_all_summaries()
 
 with tf.Session() as session:
     train_writer = tf.train.SummaryWriter(summary_save_dir, session.graph)
+    coordinator = tf.train.Coordinator()
 
     session.run(tf.initialize_all_variables())
     numpy_state = initial_state.eval()
 
-    for i in xrange(ITERATIONS):
-        batch = DI.next_batch()
+    t = threading.Thread(target=load_batch, args=(session, coordinator, queue_op))
+    t.start()
 
+    for i in xrange(ITERATIONS):
         if i % LOG_STEP == 0:
             train_accuracy, summary = session.run([accuracy, merged], feed_dict={
-                initial_state: numpy_state,
-                input_sequence: batch[0],
-                output_actual: batch[1]
+                initial_state: numpy_state
             })
             train_writer.add_summary(summary, i)
 
             print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
 
         numpy_state, _ = session.run([final_state, train_step], feed_dict={
-            initial_state: numpy_state,
-            input_sequence: batch[0],
-            output_actual: batch[1]
+            initial_state: numpy_state
             })
+
+    coordinator.request_stop()
+    coordinator.join([t])
