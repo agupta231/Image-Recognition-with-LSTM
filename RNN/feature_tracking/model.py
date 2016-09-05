@@ -2,7 +2,6 @@ from data_import import DataImport
 import tensorflow as tf
 import numpy as np
 import threading
-import Queue
 import glob
 import os
 
