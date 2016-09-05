@@ -33,7 +33,7 @@ CELL_LAYERS = 10
 HIDDEN_SIZE = 256
 OUTPUT_SIZE = 2
 
-REGENERATE_CHUNKS = True
+REGENERATE_CHUNKS = False
 
 summary_save_dir = os.getcwd() + "/summaries/" + FRAMES_FOLDER + "_" + DISTANCE_DATA + "_lr" + str(LEARNING_RATE) + "_t" + str(THRESHOLD) + "_bs" + str(BATCH_SIZE) + "_ts" + str(TIME_STEPS) + "_p" + str(SEQUENCE_SPACING) + "_cs" + str(CELL_SIZE) + "x" + str(CELL_LAYERS) + "x" + str(HIDDEN_SIZE)
 os.mkdir(summary_save_dir)
@@ -44,7 +44,7 @@ if REGENERATE_CHUNKS:
     os.mkdir(os.getcwd() + "/chunks")
 
     dataFolders = [path for path in glob.glob(os.getcwd() + "/*") if
-                   os.path.isdir(path) and not "chunks" in path and not "done" in path]
+                   os.path.isdir(path) and not "chunks" in path and not "summaries" in path]
     for path in dataFolders:
         DI.import_folder(path)
 
@@ -106,6 +106,7 @@ with tf.Session() as session:
 
     for i in xrange(ITERATIONS):
         batch = DI.next_batch()
+        print np.array(batch).shape
 
         if i % LOG_STEP == 0:
             train_accuracy, summary = session.run([accuracy, merged], feed_dict={
