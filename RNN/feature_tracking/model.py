@@ -16,16 +16,17 @@ PIXEL_COUNT = IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
 AUX_INPUTS = 2
 FREQUENCY = 60
 
-FRAMES_FOLDER = "edges_1.75"
+FRAMES_FOLDER = "resize150"
 DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
-THRESHOLD = 30
+THRESHOLD = 60
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.01
 SEQUENCE_SPACING = 1.024  # In seconds
-TIME_STEPS = 4
+TIME_STEPS = 8
 BATCH_SIZE = 32
 LOG_STEP = 5
-ITERATIONS = 10000
+ROC_COLLECT = 100
+ITERATIONS = 50000
 
 CELL_SIZE = 256
 CELL_LAYERS = 10
@@ -59,7 +60,7 @@ def load_batch(sess, coord, op):
 # The actual model
 queue_input = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
 queue_output = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
-queue = tf.RandomShuffleQueue(25, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
+queue = tf.RandomShuffleQueue(250, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
 
 queue_op = queue.enqueue([queue_input, queue_output])
 
@@ -116,16 +117,58 @@ with tf.Session() as session:
 
     for i in xrange(ITERATIONS):
         if i % LOG_STEP == 0:
-            train_accuracy, summary = session.run([accuracy, merged], feed_dict={
-                initial_state: numpy_state
-            })
+            train_accuracy, summary = session.run([accuracy, merged], feed_dict={initial_state: numpy_state})
             train_writer.add_summary(summary, i)
 
             print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
 
-        numpy_state, _ = session.run([final_state, train_step], feed_dict={
-            initial_state: numpy_state
-            })
+        if i % ROC_COLLECT == 0:
+            ROC_log_file = open(summary_save_dir + "/ROC.txt", "a")
+
+            output_values, prediction_values = session.run([output_actual, prediction], feed_dict={initial_state: numpy_state})
+
+            actual_positives = 0
+            actual_negatives = 0
+            true_positives = 0
+            true_negatives = 0
+            false_positives = 0
+            false_negatives = 0
+
+            for j in xrange(len(output_values)):
+                if output_values[j][1] == 1:
+                    actual_positives += 1
+
+                    if prediction_values[j][1] > 0.5:
+                        true_positives += 1
+
+                elif output_values[j][0] == 1:
+                    actual_negatives += 1
+
+                    if prediction_values[j][0] > 0.5:
+                        true_negatives += 1
+
+            if actual_positives == 0:
+                if true_positives == 0:
+                    TPR = 1
+                else:
+                    TPR = 0
+            else:
+                TPR = true_positives / float(actual_positives)
+
+            if actual_negatives == 0:
+                if true_negatives == 0:
+                    TNR = 1
+                else:
+                    TNR = 0
+            else:
+                TNR = true_negatives / float(actual_negatives)
+            FPR = 1 - TPR
+            FNR = 1 - TNR
+
+            ROC_log_file.write(str(i) + "," + str(TPR) + "," + str(FPR) + "\n")
+            ROC_log_file.close()
+
+        numpy_state, _ = session.run([final_state, train_step], feed_dict={initial_state: numpy_state})
 
     coordinator.request_stop()
     coordinator.join([t])

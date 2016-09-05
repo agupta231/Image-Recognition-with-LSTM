@@ -81,7 +81,7 @@ class DataImport:
         del master_data_array
 
     def _generate_chunks(self, arg_array):
-        chunk_cutoff = self.period * (self.time_steps + 1) * 1000
+        chunk_cutoff = self.period * (self.time_steps + 5) * 1000
         chunk_size = None
 
         while True:
@@ -105,11 +105,14 @@ class DataImport:
                 chunk.close()
                 return
 
-    def next_batch(self):
+    def next_batch(self, bs=-1):
+        if bs == -1:
+            bs = self.batch_size
+
         input_sequences = []
         output_sequences = []
 
-        while len(input_sequences) < self.batch_size:
+        while len(input_sequences) < bs:
             chunk = open(os.getcwd() + "/chunks/chunk" + str(random.randint(0, len(glob.glob(os.getcwd() + "/chunks/*")) - 1)))
             data = pickle.load(chunk)
 
@@ -127,7 +130,7 @@ class DataImport:
                         previous_key = j + 1
                         break
 
-            if len(batch_images) == 4:
+            if len(batch_images) == self.time_steps:
                 output_found = False
 
                 for j in xrange(previous_key, len(data) - 1):
