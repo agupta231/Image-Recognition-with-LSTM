@@ -49,108 +49,76 @@ if REGENERATE_CHUNKS:
         DI.import_folder(path)
 
 
-class Model(threading.Thread):
-    def __init__(self, q, job):
-        threading.Thread.__init__(self)
-        self.q = q
-        self.job = job
-
-    def run(self):
-        if self.job == 0:
-            self.populate_queue()
-        elif self.job == 1:
-            self.rnn()
-
-    def rnn(self):
-        # Helper functions
-        def create_weight(shape):
-            initial = tf.truncated_normal(shape=shape, stddev=0.1)
-            return tf.Variable(initial)
+# Helper functions
+def create_weight(shape):
+    initial = tf.truncated_normal(shape=shape, stddev=0.1)
+    return tf.Variable(initial)
 
 
-        def create_bias(shape):
-            initial = tf.constant(0.1, shape=shape)
-            return tf.Variable(initial)
+def create_bias(shape):
+    initial = tf.constant(0.1, shape=shape)
+    return tf.Variable(initial)
 
 
-        # The actual model
-        input_sequence = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
-        output_actual = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
+# The actual model
+input_sequence = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
+output_actual = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
 
-        lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(CELL_SIZE, state_is_tuple=False)
-        stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_tuple=False)
+lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(CELL_SIZE, state_is_tuple=False)
+stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_tuple=False)
 
-        initial_state = state = stacked_lstm.zero_state(BATCH_SIZE, tf.float32)
-        outputs = []
+initial_state = state = stacked_lstm.zero_state(BATCH_SIZE, tf.float32)
+outputs = []
 
-        with tf.variable_scope("LSTM"):
-            for step in xrange(TIME_STEPS):
-                if step > 0:
-                    tf.get_variable_scope().reuse_variables()
-                cell_output, state = stacked_lstm(input_sequence[:, step, :], state)
-                outputs.append(cell_output)
+with tf.variable_scope("LSTM"):
+    for step in xrange(TIME_STEPS):
+        if step > 0:
+            tf.get_variable_scope().reuse_variables()
+        cell_output, state = stacked_lstm(input_sequence[:, step, :], state)
+        outputs.append(cell_output)
 
-        final_state = state
+final_state = state
 
-        # output = tf.reshape(tf.concat(1, outputs), [-1, HIDDEN_SIZE])
-        output = tf.reshape(outputs[-1], [BATCH_SIZE, HIDDEN_SIZE])
+# output = tf.reshape(tf.concat(1, outputs), [-1, HIDDEN_SIZE])
+output = tf.reshape(outputs[-1], [BATCH_SIZE, HIDDEN_SIZE])
 
-        softmax_w = tf.get_variable("softmax_w", [HIDDEN_SIZE, OUTPUT_SIZE], dtype=tf.float32)
-        softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
-        prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
+softmax_w = tf.get_variable("softmax_w", [HIDDEN_SIZE, OUTPUT_SIZE], dtype=tf.float32)
+softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
+prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
 
-        cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
-        train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
-        correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
+train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
+correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-        tf.histogram_summary("softmax weights", softmax_w)
-        tf.histogram_summary("softmax biases", softmax_b)
-        tf.scalar_summary('accuracy', accuracy)
-        tf.scalar_summary('cross entropy', cross_entropy)
+tf.histogram_summary("softmax weights", softmax_w)
+tf.histogram_summary("softmax biases", softmax_b)
+tf.scalar_summary('accuracy', accuracy)
+tf.scalar_summary('cross entropy', cross_entropy)
 
-        merged = tf.merge_all_summaries()
+merged = tf.merge_all_summaries()
 
-        with tf.Session() as session:
-            train_writer = tf.train.SummaryWriter(summary_save_dir, session.graph)
+with tf.Session() as session:
+    train_writer = tf.train.SummaryWriter(summary_save_dir, session.graph)
 
-            session.run(tf.initialize_all_variables())
-            numpy_state = initial_state.eval()
+    session.run(tf.initialize_all_variables())
+    numpy_state = initial_state.eval()
 
-            for i in xrange(ITERATIONS):
-                batch = self.q.get()
+    for i in xrange(ITERATIONS):
+        batch = DI.next_batch()
 
-                if i % LOG_STEP == 0:
-                    train_accuracy, summary = session.run([accuracy, merged], feed_dict={
-                        initial_state: numpy_state,
-                        input_sequence: batch[0],
-                        output_actual: batch[1]
-                    })
-                    train_writer.add_summary(summary, i)
+        if i % LOG_STEP == 0:
+            train_accuracy, summary = session.run([accuracy, merged], feed_dict={
+                initial_state: numpy_state,
+                input_sequence: batch[0],
+                output_actual: batch[1]
+            })
+            train_writer.add_summary(summary, i)
 
-                    print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
+            print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
 
-                numpy_state, _ = session.run([final_state, train_step], feed_dict={
-                    initial_state: numpy_state,
-                    input_sequence: batch[0],
-                    output_actual: batch[1]
-                    })
-
-    def populate_queue(self):
-        for i in xrange(ITERATIONS):
-            self.q.put(DI.next_batch())
-
-queue = Queue.Queue()
-threads = [Model(queue, i) for i in xrange(2)]
-
-for thread in threads:
-    thread.daemon = True
-    thread.start()
-
-while True:
-    exit_flag = raw_input("Type exit to exit:\n")
-
-    if exit_flag == "exit":
-        break
-    else:
-        print "Must type in 'exit'"
+        numpy_state, _ = session.run([final_state, train_step], feed_dict={
+            initial_state: numpy_state,
+            input_sequence: batch[0],
+            output_actual: batch[1]
+            })
