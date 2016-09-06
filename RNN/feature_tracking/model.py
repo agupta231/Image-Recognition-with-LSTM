@@ -16,14 +16,14 @@ PIXEL_COUNT = IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
 AUX_INPUTS = 2
 FREQUENCY = 60
 
-FRAMES_FOLDER = "edges_1.75"
+FRAMES_FOLDER = "resize150"
 DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
-THRESHOLD = 100
+THRESHOLD = 60
 
 LEARNING_RATE = 0.005
 SEQUENCE_SPACING = 0.512  # In seconds
-TIME_STEPS = 8
-BATCH_SIZE = 32
+TIME_STEPS = 6
+BATCH_SIZE = 46
 LOG_STEP = 5
 ROC_COLLECT = 100
 ITERATIONS = 50000
@@ -89,8 +89,10 @@ final_state = state
 # output = tf.reshape(tf.concat(1, outputs), [-1, HIDDEN_SIZE])
 output = tf.reshape(outputs[-1], [BATCH_SIZE, HIDDEN_SIZE])
 
-softmax_w = tf.get_variable("softmax_w", [HIDDEN_SIZE, OUTPUT_SIZE], dtype=tf.float32)
-softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
+# softmax_w = tf.get_variable("softmax_w", [HIDDEN_SIZE, OUTPUT_SIZE], dtype=tf.float32)
+# softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
+softmax_w = tf.Variable(tf.truncated_normal([HIDDEN_SIZE, OUTPUT_SIZE], stddev=0.1))
+softmax_b = tf.Variable(tf.constant(0.1, shape=[OUTPUT_SIZE]))
 prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
 
 cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
@@ -125,7 +127,11 @@ with tf.Session() as session:
         if i % ROC_COLLECT == 0:
             ROC_log_file = open(summary_save_dir + "/ROC.txt", "a")
 
-            output_values, prediction_values = session.run([output_actual, prediction], feed_dict={initial_state: numpy_state})
+            output_values, prediction_values, output_raw = session.run([output_actual, prediction, output], feed_dict={initial_state: numpy_state})
+
+            print output_raw
+            print output_values
+            print prediction_values
 
             actual_positives = 0
             actual_negatives = 0
