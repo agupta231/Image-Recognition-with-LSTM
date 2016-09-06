@@ -16,12 +16,12 @@ PIXEL_COUNT = IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
 AUX_INPUTS = 2
 FREQUENCY = 60
 
-FRAMES_FOLDER = "resize150"
+FRAMES_FOLDER = "edges_1.75"
 DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
-THRESHOLD = 60
+THRESHOLD = 100
 
-LEARNING_RATE = 0.01
-SEQUENCE_SPACING = 1.024  # In seconds
+LEARNING_RATE = 0.005
+SEQUENCE_SPACING = 0.512  # In seconds
 TIME_STEPS = 8
 BATCH_SIZE = 32
 LOG_STEP = 5
@@ -29,7 +29,7 @@ ROC_COLLECT = 100
 ITERATIONS = 50000
 
 CELL_SIZE = 256
-CELL_LAYERS = 10
+CELL_LAYERS = 64
 HIDDEN_SIZE = 256
 OUTPUT_SIZE = 2
 
@@ -164,6 +164,8 @@ with tf.Session() as session:
                 TNR = true_negatives / float(actual_negatives)
             FPR = 1 - TPR
             FNR = 1 - TNR
+
+            print TPR, FPR, true_positives, actual_positives, true_negatives, actual_negatives
 
             ROC_log_file.write(str(i) + "," + str(TPR) + "," + str(FPR) + "\n")
             ROC_log_file.close()
