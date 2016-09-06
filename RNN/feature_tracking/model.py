@@ -20,17 +20,18 @@ FRAMES_FOLDER = "resize150"
 DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
 THRESHOLD = 60
 
-LEARNING_RATE = 0.005
+LEARNING_RATE = 0.001
 SEQUENCE_SPACING = 0.512  # In seconds
-TIME_STEPS = 6
-BATCH_SIZE = 46
+TIME_STEPS = 4
+BATCH_SIZE = 26
 LOG_STEP = 5
-ROC_COLLECT = 100
+ROC_COLLECT = 10
 ITERATIONS = 50000
 
 CELL_SIZE = 256
 CELL_LAYERS = 64
-HIDDEN_SIZE = 256
+HIDDEN_SIZE = 11251
+SOFTMAX_SIZE = 256
 OUTPUT_SIZE = 2
 
 REGENERATE_CHUNKS = True
@@ -77,25 +78,39 @@ stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_t
 initial_state = state = stacked_lstm.zero_state(BATCH_SIZE, tf.float32)
 outputs = []
 
+print input_sequence
+print input_sequence[:, 0, :]
+
 with tf.variable_scope("LSTM"):
     for step in xrange(TIME_STEPS):
         if step > 0:
             tf.get_variable_scope().reuse_variables()
-        cell_output, state = stacked_lstm(input_sequence[:, step, :], state)
+
+        input_pre = tf.reshape(input_sequence[:, step, :], [-1, HIDDEN_SIZE])
+
+        input_weight = tf.get_variable("lstm_w_" + str(step), [HIDDEN_SIZE, CELL_SIZE], dtype=tf.float32)
+        input_bias = tf.get_variable("lstm_b" + str(step), [CELL_SIZE], dtype=tf.float32)
+
+        # input_post = tf.matmul(input_sequence[:, step, :], input_weight) + input_bias
+        input_post = tf.matmul(input_pre, input_weight) + input_bias
+
+        # cell_output, state = stacked_lstm(input_sequence[:, step, :], state)
+        cell_output, state = stacked_lstm(input_post, state)
         outputs.append(cell_output)
 
 final_state = state
 
 # output = tf.reshape(tf.concat(1, outputs), [-1, HIDDEN_SIZE])
-output = tf.reshape(outputs[-1], [BATCH_SIZE, HIDDEN_SIZE])
+output = tf.reshape(outputs[-1], [BATCH_SIZE, SOFTMAX_SIZE])
 
 # softmax_w = tf.get_variable("softmax_w", [HIDDEN_SIZE, OUTPUT_SIZE], dtype=tf.float32)
 # softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
-softmax_w = tf.Variable(tf.truncated_normal([HIDDEN_SIZE, OUTPUT_SIZE], stddev=0.1))
+softmax_w = tf.Variable(tf.random_normal([SOFTMAX_SIZE, OUTPUT_SIZE], stddev=0.25))
 softmax_b = tf.Variable(tf.constant(0.1, shape=[OUTPUT_SIZE]))
 prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
 
-cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
+# cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
+cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, output_actual))
 train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
 correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -127,7 +142,7 @@ with tf.Session() as session:
         if i % ROC_COLLECT == 0:
             ROC_log_file = open(summary_save_dir + "/ROC.txt", "a")
 
-            output_values, prediction_values, output_raw = session.run([output_actual, prediction, output], feed_dict={initial_state: numpy_state})
+            output_values, prediction_values, output_raw = session.run([output_actual, prediction, outputs], feed_dict={initial_state: numpy_state})
 
             print output_raw
             print output_values
