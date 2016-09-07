@@ -23,8 +23,8 @@ THRESHOLD = 60
 LEARNING_RATE = 0.001
 SEQUENCE_SPACING = 0.512  # In seconds
 TIME_STEPS = 4
-BATCH_SIZE = 26
-LOG_STEP = 5
+BATCH_SIZE = 28
+LOG_STEP = 1
 ROC_COLLECT = 10
 ITERATIONS = 50000
 
@@ -71,40 +71,49 @@ queue_op = queue.enqueue([queue_input, queue_output])
 raw = queue.dequeue()
 input_sequence = raw[0]
 output_actual = raw[1]
+dropout = tf.placeholder(tf.float32)
 
 lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(CELL_SIZE, state_is_tuple=False)
+dropout_lstm = tf.nn.rnn_cell.DropoutWrapper(lstm_cell, output_keep_prob=dropout)
 stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_tuple=False)
 
-initial_state = state = stacked_lstm.zero_state(BATCH_SIZE, tf.float32)
-outputs = []
+# initial_state = state = stacked_lstm.zero_state(BATCH_SIZE, tf.float32)
+# outputs = []
 
 print input_sequence
 print input_sequence[:, 0, :]
 
-with tf.variable_scope("LSTM"):
-    for step in xrange(TIME_STEPS):
-        if step > 0:
-            tf.get_variable_scope().reuse_variables()
+output, _ = tf.nn.dynamic_rnn(stacked_lstm, input_sequence, dtype=tf.float32)
+output_transposed = tf.transpose(output, [1, 0, 2])
+last = tf.gather(output_transposed, int(output_transposed.get_shape()[0]) - 1)
 
-        input_pre = tf.reshape(input_sequence[:, step, :], [-1, HIDDEN_SIZE])
+print last
 
-        input_weight = tf.get_variable("lstm_w_" + str(step), [HIDDEN_SIZE, CELL_SIZE], dtype=tf.float32)
-        input_bias = tf.get_variable("lstm_b" + str(step), [CELL_SIZE], dtype=tf.float32)
+# with tf.variable_scope("LSTM"):
+#     for step in xrange(TIME_STEPS):
+#         if step > 0:
+#             tf.get_variable_scope().reuse_variables()
+#
+#         input_pre = tf.reshape(input_sequence[:, step, :], [-1, HIDDEN_SIZE])
+#
+#         input_weight = tf.get_variable("lstm_w_" + str(step), [HIDDEN_SIZE, CELL_SIZE], dtype=tf.float32)
+#         input_bias = tf.get_variable("lstm_b" + str(step), [CELL_SIZE], dtype=tf.float32)
+#
+#         # input_post = tf.matmul(input_sequence[:, step, :], input_weight) + input_bias
+#         input_post = tf.matmul(input_pre, input_weight) + input_bias
+#
+#         # cell_output, state = stacked_lstm(input_sequence[:, step, :], state)
+#         cell_output, state = stacked_lstm(input_post, state)
+#         outputs.append(cell_output)
 
-        # input_post = tf.matmul(input_sequence[:, step, :], input_weight) + input_bias
-        input_post = tf.matmul(input_pre, input_weight) + input_bias
-
-        # cell_output, state = stacked_lstm(input_sequence[:, step, :], state)
-        cell_output, state = stacked_lstm(input_post, state)
-        outputs.append(cell_output)
-
-final_state = state
+# final_state = state
 
 # output = tf.reshape(tf.concat(1, outputs), [-1, HIDDEN_SIZE])
-output = tf.reshape(outputs[-1], [BATCH_SIZE, SOFTMAX_SIZE])
+#output = tf.reshape(outputs[-1], [BATCH_SIZE, SOFTMAX_SIZE])
 
 # softmax_w = tf.get_variable("softmax_w", [HIDDEN_SIZE, OUTPUT_SIZE], dtype=tf.float32)
 # softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
+
 softmax_w = tf.Variable(tf.random_normal([SOFTMAX_SIZE, OUTPUT_SIZE], stddev=0.25))
 softmax_b = tf.Variable(tf.constant(0.1, shape=[OUTPUT_SIZE]))
 prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
@@ -127,71 +136,73 @@ with tf.Session() as session:
     coordinator = tf.train.Coordinator()
 
     session.run(tf.initialize_all_variables())
-    numpy_state = initial_state.eval()
+    # numpy_state = initial_state.eval()
 
     t = threading.Thread(target=load_batch, args=(session, coordinator, queue_op))
     t.start()
 
     for i in xrange(ITERATIONS):
         if i % LOG_STEP == 0:
-            train_accuracy, summary = session.run([accuracy, merged], feed_dict={initial_state: numpy_state})
+            # train_accuracy, summary = session.run([accuracy, merged], feed_dict={initial_state: numpy_state})
+            train_accuracy, summary = session.run([accuracy, merged], feed_dict={dropout: 0.5})
             train_writer.add_summary(summary, i)
 
             print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
 
-        if i % ROC_COLLECT == 0:
-            ROC_log_file = open(summary_save_dir + "/ROC.txt", "a")
+        # if i % ROC_COLLECT == 21:
+        #     ROC_log_file = open(summary_save_dir + "/ROC.txt", "a")
+        #
+        #     output_values, prediction_values, output_raw = session.run([output_actual, prediction, outputs], feed_dict={initial_state: numpy_state})
+        #
+        #     print output_raw
+        #     print output_values
+        #     print prediction_values
+        #
+        #     actual_positives = 0
+        #     actual_negatives = 0
+        #     true_positives = 0
+        #     true_negatives = 0
+        #     false_positives = 0
+        #     false_negatives = 0
+        #
+        #     for j in xrange(len(output_values)):
+        #         if output_values[j][1] == 1:
+        #             actual_positives += 1
+        #
+        #             if prediction_values[j][1] > 0.5:
+        #                 true_positives += 1
+        #
+        #         elif output_values[j][0] == 1:
+        #             actual_negatives += 1
+        #
+        #             if prediction_values[j][0] > 0.5:
+        #                 true_negatives += 1
+        #
+        #     if actual_positives == 0:
+        #         if true_positives == 0:
+        #             TPR = 1
+        #         else:
+        #             TPR = 0
+        #     else:
+        #         TPR = true_positives / float(actual_positives)
+        #
+        #     if actual_negatives == 0:
+        #         if true_negatives == 0:
+        #             TNR = 1
+        #         else:
+        #             TNR = 0
+        #     else:
+        #         TNR = true_negatives / float(actual_negatives)
+        #     FPR = 1 - TPR
+        #     FNR = 1 - TNR
+        #
+        #     print TPR, FPR, true_positives, actual_positives, true_negatives, actual_negatives
+        #
+        #     ROC_log_file.write(str(i) + "," + str(TPR) + "," + str(FPR) + "\n")
+        #     ROC_log_file.close()
 
-            output_values, prediction_values, output_raw = session.run([output_actual, prediction, outputs], feed_dict={initial_state: numpy_state})
-
-            print output_raw
-            print output_values
-            print prediction_values
-
-            actual_positives = 0
-            actual_negatives = 0
-            true_positives = 0
-            true_negatives = 0
-            false_positives = 0
-            false_negatives = 0
-
-            for j in xrange(len(output_values)):
-                if output_values[j][1] == 1:
-                    actual_positives += 1
-
-                    if prediction_values[j][1] > 0.5:
-                        true_positives += 1
-
-                elif output_values[j][0] == 1:
-                    actual_negatives += 1
-
-                    if prediction_values[j][0] > 0.5:
-                        true_negatives += 1
-
-            if actual_positives == 0:
-                if true_positives == 0:
-                    TPR = 1
-                else:
-                    TPR = 0
-            else:
-                TPR = true_positives / float(actual_positives)
-
-            if actual_negatives == 0:
-                if true_negatives == 0:
-                    TNR = 1
-                else:
-                    TNR = 0
-            else:
-                TNR = true_negatives / float(actual_negatives)
-            FPR = 1 - TPR
-            FNR = 1 - TNR
-
-            print TPR, FPR, true_positives, actual_positives, true_negatives, actual_negatives
-
-            ROC_log_file.write(str(i) + "," + str(TPR) + "," + str(FPR) + "\n")
-            ROC_log_file.close()
-
-        numpy_state, _ = session.run([final_state, train_step], feed_dict={initial_state: numpy_state})
+        # numpy_state, _ = session.run([final_state, train_step], feed_dict={initial_state: numpy_state})
+        session.run(train_step, feed_dict={dropout: 0.5})
 
     coordinator.request_stop()
     coordinator.join([t])
