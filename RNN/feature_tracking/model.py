@@ -16,19 +16,19 @@ PIXEL_COUNT = IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
 AUX_INPUTS = 2
 FREQUENCY = 60
 
-FRAMES_FOLDER = "resize150"
+FRAMES_FOLDER = "edges_1.75"
 DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
 THRESHOLD = 60
 
-LEARNING_RATE = 0.001
-SEQUENCE_SPACING = 0.512  # In seconds
+LEARNING_RATE = 1
+SEQUENCE_SPACING = 0.256 # In seconds
 TIME_STEPS = 4
-BATCH_SIZE = 28
+BATCH_SIZE = 22
 LOG_STEP = 1
 ROC_COLLECT = 10
 ITERATIONS = 50000
 
-CELL_SIZE = 256
+CELL_SIZE = 348
 CELL_LAYERS = 64
 HIDDEN_SIZE = 11251
 SOFTMAX_SIZE = 256
@@ -114,13 +114,15 @@ print last
 # softmax_w = tf.get_variable("softmax_w", [HIDDEN_SIZE, OUTPUT_SIZE], dtype=tf.float32)
 # softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
 
-softmax_w = tf.Variable(tf.random_normal([SOFTMAX_SIZE, OUTPUT_SIZE], stddev=0.25))
+softmax_w = tf.Variable(tf.truncated_normal([CELL_SIZE, OUTPUT_SIZE], stddev=0.1))
 softmax_b = tf.Variable(tf.constant(0.1, shape=[OUTPUT_SIZE]))
-prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
+# prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
+prediction = tf.nn.softmax(tf.matmul(last, softmax_w) + softmax_b)
 
-# cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
-cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, output_actual))
-train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
+cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
+# cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, output_actual))
+train_step = tf.train.RMSPropOptimizer(LEARNING_RATE).minimize(cross_entropy)
+# train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
 correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
@@ -149,57 +151,57 @@ with tf.Session() as session:
 
             print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
 
-        # if i % ROC_COLLECT == 21:
-        #     ROC_log_file = open(summary_save_dir + "/ROC.txt", "a")
-        #
-        #     output_values, prediction_values, output_raw = session.run([output_actual, prediction, outputs], feed_dict={initial_state: numpy_state})
-        #
-        #     print output_raw
-        #     print output_values
-        #     print prediction_values
-        #
-        #     actual_positives = 0
-        #     actual_negatives = 0
-        #     true_positives = 0
-        #     true_negatives = 0
-        #     false_positives = 0
-        #     false_negatives = 0
-        #
-        #     for j in xrange(len(output_values)):
-        #         if output_values[j][1] == 1:
-        #             actual_positives += 1
-        #
-        #             if prediction_values[j][1] > 0.5:
-        #                 true_positives += 1
-        #
-        #         elif output_values[j][0] == 1:
-        #             actual_negatives += 1
-        #
-        #             if prediction_values[j][0] > 0.5:
-        #                 true_negatives += 1
-        #
-        #     if actual_positives == 0:
-        #         if true_positives == 0:
-        #             TPR = 1
-        #         else:
-        #             TPR = 0
-        #     else:
-        #         TPR = true_positives / float(actual_positives)
-        #
-        #     if actual_negatives == 0:
-        #         if true_negatives == 0:
-        #             TNR = 1
-        #         else:
-        #             TNR = 0
-        #     else:
-        #         TNR = true_negatives / float(actual_negatives)
-        #     FPR = 1 - TPR
-        #     FNR = 1 - TNR
-        #
-        #     print TPR, FPR, true_positives, actual_positives, true_negatives, actual_negatives
-        #
-        #     ROC_log_file.write(str(i) + "," + str(TPR) + "," + str(FPR) + "\n")
-        #     ROC_log_file.close()
+        if i % ROC_COLLECT == 0:
+            ROC_log_file = open(summary_save_dir + "/ROC.txt", "a")
+
+            output_values, prediction_values, outputs_raw = session.run([output_actual, prediction, last], feed_dict={dropout: 0.5})
+
+            print outputs_raw
+            print output_values
+            print prediction_values
+
+            actual_positives = 0
+            actual_negatives = 0
+            true_positives = 0
+            true_negatives = 0
+            false_positives = 0
+            false_negatives = 0
+
+            for j in xrange(len(output_values)):
+                if output_values[j][1] == 1:
+                    actual_positives += 1
+
+                    if prediction_values[j][1] > 0.5:
+                        true_positives += 1
+
+                elif output_values[j][0] == 1:
+                    actual_negatives += 1
+
+                    if prediction_values[j][0] > 0.5:
+                        true_negatives += 1
+
+            if actual_positives == 0:
+                if true_positives == 0:
+                    TPR = 1
+                else:
+                    TPR = 0
+            else:
+                TPR = true_positives / float(actual_positives)
+
+            if actual_negatives == 0:
+                if true_negatives == 0:
+                    TNR = 1
+                else:
+                    TNR = 0
+            else:
+                TNR = true_negatives / float(actual_negatives)
+            FPR = 1 - TPR
+            FNR = 1 - TNR
+
+            print TPR, FPR, true_positives, actual_positives, true_negatives, actual_negatives
+
+            ROC_log_file.write(str(i) + "," + str(TPR) + "," + str(FPR) + "\n")
+            ROC_log_file.close()
 
         # numpy_state, _ = session.run([final_state, train_step], feed_dict={initial_state: numpy_state})
         session.run(train_step, feed_dict={dropout: 0.5})
