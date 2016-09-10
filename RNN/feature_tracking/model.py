@@ -36,11 +36,14 @@ OUTPUT_SIZE = 2
 
 REGENERATE_CHUNKS = True
 
+# Generate folder for tensorboard summary files
 summary_save_dir = os.getcwd() + "/summaries/" + FRAMES_FOLDER + "_" + DISTANCE_DATA + "_lr" + str(LEARNING_RATE) + "_t" + str(THRESHOLD) + "_bs" + str(BATCH_SIZE) + "_ts" + str(TIME_STEPS) + "_p" + str(SEQUENCE_SPACING) + "_cs" + str(CELL_SIZE) + "x" + str(CELL_LAYERS) + "x" + str(HIDDEN_SIZE)
 os.mkdir(summary_save_dir)
 
+# Create data importer object
 DI = DataImport(FRAMES_FOLDER, SEQUENCE_SPACING, DISTANCE_DATA, THRESHOLD, BATCH_SIZE, TIME_STEPS, channels=IMAGE_CHANNELS, image_size=IMAGE_WIDTH)
 
+# Generate chunks for more efficient loaded
 if REGENERATE_CHUNKS:
     os.mkdir(os.getcwd() + "/chunks")
 
@@ -59,6 +62,8 @@ def load_batch(sess, coord, op):
 
 
 # The actual model
+
+# Create queue for mulithreaded batch loaded
 queue_input = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
 queue_output = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
 queue = tf.RandomShuffleQueue(250, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
@@ -68,11 +73,14 @@ queue_op = queue.enqueue([queue_input, queue_output])
 # input_sequence = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
 # output_actual = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
 
+
+# Create placholders
 raw = queue.dequeue()
 input_sequence = raw[0]
 output_actual = raw[1]
 dropout = tf.placeholder(tf.float32)
 
+# This is the actual LSTM cell
 lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(CELL_SIZE, state_is_tuple=False)
 dropout_lstm = tf.nn.rnn_cell.DropoutWrapper(lstm_cell, output_keep_prob=dropout)
 stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_tuple=False)
@@ -83,8 +91,13 @@ stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_t
 print input_sequence
 print input_sequence[:, 0, :]
 
+# Get the output of the cell
 output, _ = tf.nn.dynamic_rnn(stacked_lstm, input_sequence, dtype=tf.float32)
+
+# Transposed the output to get the last output in the sequence (Tensorflow can't do list[-1])
 output_transposed = tf.transpose(output, [1, 0, 2])
+
+# Get the final output of the LSTM
 last = tf.gather(output_transposed, int(output_transposed.get_shape()[0]) - 1)
 
 print last
@@ -114,6 +127,8 @@ print last
 # softmax_w = tf.get_variable("softmax_w", [HIDDEN_SIZE, OUTPUT_SIZE], dtype=tf.float32)
 # softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
 
+
+# Create softmax Layer
 softmax_w = tf.Variable(tf.truncated_normal([CELL_SIZE, OUTPUT_SIZE], stddev=0.1))
 softmax_b = tf.Variable(tf.constant(0.1, shape=[OUTPUT_SIZE]))
 # prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
@@ -123,9 +138,12 @@ cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction)
 # cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, output_actual))
 train_step = tf.train.RMSPropOptimizer(LEARNING_RATE).minimize(cross_entropy)
 # train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
+
+# Compare the value that has the largest probablity in the prediction and compare that to the actual answer
 correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
+# Write summaries for tensorboard and accuary tracking
 tf.histogram_summary("softmax weights", softmax_w)
 tf.histogram_summary("softmax biases", softmax_b)
 tf.scalar_summary('accuracy', accuracy)
@@ -134,7 +152,10 @@ tf.scalar_summary('cross entropy', cross_entropy)
 merged = tf.merge_all_summaries()
 
 with tf.Session() as session:
+    # Create object to write session summaries
     train_writer = tf.train.SummaryWriter(summary_save_dir, session.graph)
+
+    # Create coordinator to be able manage mulitple queues
     coordinator = tf.train.Coordinator()
 
     session.run(tf.initialize_all_variables())
