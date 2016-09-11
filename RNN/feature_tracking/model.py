@@ -82,7 +82,11 @@ dropout = tf.placeholder(tf.float32)
 
 # This is the actual LSTM cell
 lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(CELL_SIZE, state_is_tuple=False)
+
+# Create dropout to prevent dead neurons
 dropout_lstm = tf.nn.rnn_cell.DropoutWrapper(lstm_cell, output_keep_prob=dropout)
+
+# Layer the LSTM to give it more processing power
 stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_tuple=False)
 
 # initial_state = state = stacked_lstm.zero_state(BATCH_SIZE, tf.float32)
@@ -172,9 +176,11 @@ with tf.Session() as session:
 
             print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
 
+        # Determine ROC of current iteration
         if i % ROC_COLLECT == 0:
             ROC_log_file = open(summary_save_dir + "/ROC.txt", "a")
 
+            # Get the actual output values, the predicted values and the softmax values (just for debugging)
             output_values, prediction_values, outputs_raw = session.run([output_actual, prediction, last], feed_dict={dropout: 0.5})
 
             print outputs_raw
@@ -188,6 +194,7 @@ with tf.Session() as session:
             false_positives = 0
             false_negatives = 0
 
+            # Count the true positive and the true negatives
             for j in xrange(len(output_values)):
                 if output_values[j][1] == 1:
                     actual_positives += 1
@@ -201,6 +208,7 @@ with tf.Session() as session:
                     if prediction_values[j][0] > 0.5:
                         true_negatives += 1
 
+            # Prevent 0 / 0 error
             if actual_positives == 0:
                 if true_positives == 0:
                     TPR = 1
@@ -216,15 +224,20 @@ with tf.Session() as session:
                     TNR = 0
             else:
                 TNR = true_negatives / float(actual_negatives)
+
+            # Calculate false positive rate and the false negative rate by subtracting the values from 1
             FPR = 1 - TPR
             FNR = 1 - TNR
 
             print TPR, FPR, true_positives, actual_positives, true_negatives, actual_negatives
 
+            # Write data to log step
             ROC_log_file.write(str(i) + "," + str(TPR) + "," + str(FPR) + "\n")
             ROC_log_file.close()
 
         # numpy_state, _ = session.run([final_state, train_step], feed_dict={initial_state: numpy_state})
+
+        # Run the training step optimizer
         session.run(train_step, feed_dict={dropout: 0.5})
 
     coordinator.request_stop()
