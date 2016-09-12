@@ -16,14 +16,14 @@ PIXEL_COUNT = IMAGE_HEIGHT * IMAGE_WIDTH * IMAGE_CHANNELS
 AUX_INPUTS = 2
 FREQUENCY = 60
 
-FRAMES_FOLDER = "edges_1.75"
+FRAMES_FOLDER = "resize150"
 DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
-THRESHOLD = 60
+THRESHOLD = 75
 
 LEARNING_RATE = 1
 SEQUENCE_SPACING = 0.256 # In seconds
 TIME_STEPS = 4
-BATCH_SIZE = 22
+BATCH_SIZE = 24
 LOG_STEP = 10
 ROC_COLLECT = 15
 ITERATIONS = 5000000
@@ -78,8 +78,8 @@ def load_batch(sess, coord, op):
 # Create queue for mulithreaded batch loaded
 queue_input = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
 queue_output = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
-# queue = tf.RandomShuffleQueue(250, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
-queue = tf.FIFOQueue(250, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
+queue = tf.RandomShuffleQueue(250, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
+# queue = tf.FIFOQueue(250, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
 
 queue_op = queue.enqueue([queue_input, queue_output])
 
