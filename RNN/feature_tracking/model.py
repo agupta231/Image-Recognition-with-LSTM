@@ -18,12 +18,12 @@ FREQUENCY = 60
 
 FRAMES_FOLDER = "resize150"
 DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
-THRESHOLD = 75
+THRESHOLD = 60
 
-LEARNING_RATE = 1
+LEARNING_RATE = 0.001
 SEQUENCE_SPACING = 0.256 # In seconds
 TIME_STEPS = 4
-BATCH_SIZE = 16
+BATCH_SIZE = 22
 LOG_STEP = 10
 ROC_COLLECT = 15
 ITERATIONS = 5000000
@@ -37,7 +37,7 @@ OUTPUT_SIZE = 2
 BATCH_REDUCE_ITERATION = 50
 BATCH_REDUCE_STEP = 4
 ACCURACY_CACHE_SIZE = 5
-STOPPING_THRESHOLD = 5
+STOPPING_THRESHOLD = 0
 
 REGENERATE_CHUNKS = True
 
@@ -67,9 +67,8 @@ def load_batch(sess, coord, op):
         # if batch_count % BATCH_REDUCE_ITERATION == 0 and batch_size >= BATCH_REDUCE_STEP + 1:
         #     batch_size -= BATCH_REDUCE_STEP
 
-        batch = DI.next_batch(batch_size)
+        batch = DI.next_batch()
 
-        batch_count += 1
         sess.run(op, feed_dict={queue_input: batch[0], queue_output: batch[1]})
 
 
@@ -151,10 +150,10 @@ softmax_b = tf.Variable(tf.constant(0.1, shape=[OUTPUT_SIZE]))
 # prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
 prediction = tf.nn.softmax(tf.matmul(last, softmax_w) + softmax_b)
 
-cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
-# cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, output_actual))
-# train_step = tf.train.RMSPropOptimizer(LEARNING_RATE).minimize(cross_entropy)
-train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
+# cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
+cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, output_actual))
+train_step = tf.train.RMSPropOptimizer(LEARNING_RATE).minimize(cross_entropy)
+# train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
 
 # Compare the value that has the largest probablity in the prediction and compare that to the actual answer
 correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
@@ -201,7 +200,8 @@ with tf.Session() as session:
                     delta = previous_accuracies[j] - previous_accuracies[j - 1]
                     combined_delta += abs(delta)
 
-                if combined_delta / ACCURACY_CACHE_SIZE <= STOPPING_THRESHOLD:
+                if combined_delta / ACCURACY_CACHE_SIZE < STOPPING_THRESHOLD:
+                    print "killed"
                     exit()
 
             train_writer.add_summary(summary, i)
