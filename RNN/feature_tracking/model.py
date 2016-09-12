@@ -6,7 +6,7 @@ import glob
 import os
 
 # Setup seed
-np.random.seed(420)
+np.random.seed(0)
 
 # Setup parameters
 IMAGE_HEIGHT = 150
@@ -31,6 +31,10 @@ ITERATIONS = 5000000
 CELL_SIZE = 348
 CELL_LAYERS = 64
 HIDDEN_SIZE = 11251
+DEEP_CON_1 = 128
+DEEP_CON_2 = 64
+DEEP_CON_3 = 32
+DEEP_CON_4 = 16
 SOFTMAX_SIZE = 256
 OUTPUT_SIZE = 2
 
@@ -72,6 +76,13 @@ def load_batch(sess, coord, op):
         sess.run(op, feed_dict={queue_input: batch[0], queue_output: batch[1]})
 
 
+def weight_variable(shape):
+    return tf.Variable(tf.truncated_normal(shape=shape, stddev=0.1))
+
+
+def bias_variable(shape):
+    return tf.Variable(tf.constant(0.1, shape=shape))
+
 # The actual model
 
 # Create queue for mulithreaded batch loaded
@@ -86,7 +97,7 @@ queue_op = queue.enqueue([queue_input, queue_output])
 # output_actual = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
 
 
-# Create placholders
+# Create placeholders
 raw = queue.dequeue()
 input_sequence = raw[0]
 output_actual = raw[1]
@@ -143,23 +154,49 @@ print last
 # softmax_w = tf.get_variable("softmax_w", [HIDDEN_SIZE, OUTPUT_SIZE], dtype=tf.float32)
 # softmax_b = tf.get_variable("softmax_b", [OUTPUT_SIZE], dtype=tf.float32)
 
+dc1_w = weight_variable([CELL_SIZE, DEEP_CON_1])
+dc1_b = bias_variable([DEEP_CON_1])
+dc1_out = tf.nn.relu(tf.matmul(last, dc1_w) + dc1_b)
+
+dc2_w = weight_variable([DEEP_CON_1, DEEP_CON_2])
+dc2_b = bias_variable([DEEP_CON_2])
+dc2_out = tf.nn.relu(tf.matmul(dc1_out, dc2_w) + dc2_b)
+
+dc3_w = weight_variable([DEEP_CON_2, DEEP_CON_3])
+dc3_b = bias_variable([DEEP_CON_3])
+dc3_out = tf.nn.relu(tf.matmul(dc2_out, dc3_w) + dc3_b)
+
+dc4_w = weight_variable([DEEP_CON_3, DEEP_CON_4])
+dc4_b = bias_variable([DEEP_CON_4])
+dc4_out = tf.nn.relu(tf.matmul(dc3_out, dc4_w) + dc4_b)
+
+final_dropout = tf.nn.dropout(dc4_out, keep_prob=dropout)
 
 # Create softmax Layer
-softmax_w = tf.Variable(tf.truncated_normal([CELL_SIZE, OUTPUT_SIZE], stddev=0.1))
-softmax_b = tf.Variable(tf.constant(0.1, shape=[OUTPUT_SIZE]))
+softmax_w = weight_variable([DEEP_CON_4, OUTPUT_SIZE])
+softmax_b = bias_variable([OUTPUT_SIZE])
 # prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
-prediction = tf.nn.softmax(tf.matmul(last, softmax_w) + softmax_b)
+prediction = tf.nn.softmax(tf.matmul(final_dropout, softmax_w) + softmax_b)
 
 # cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
 cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, output_actual))
-train_step = tf.train.RMSPropOptimizer(LEARNING_RATE).minimize(cross_entropy)
-# train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
+# train_step = tf.train.RMSPropOptimizer(LEARNING_RATE).minimize(cross_entropy)
+train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
 
 # Compare the value that has the largest probablity in the prediction and compare that to the actual answer
 correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 # Write summaries for tensorboard and accuary tracking
+
+tf.histogram_summary("Densly Connected Layer 1 weights", dc1_w)
+tf.histogram_summary("Densly Connected Layer 1 biases", dc1_b)
+tf.histogram_summary("Densly Connected Layer 2 weights", dc2_w)
+tf.histogram_summary("Densly Connected Layer 2 biases", dc2_b)
+tf.histogram_summary("Densly Connected Layer 3 weights", dc3_w)
+tf.histogram_summary("Densly Connected Layer 3 biases", dc3_b)
+tf.histogram_summary("Densly Connected Layer 4 weights", dc4_w)
+tf.histogram_summary("Densly Connected Layer 4 biases", dc4_b)
 tf.histogram_summary("softmax weights", softmax_w)
 tf.histogram_summary("softmax biases", softmax_b)
 tf.scalar_summary('accuracy', accuracy)
