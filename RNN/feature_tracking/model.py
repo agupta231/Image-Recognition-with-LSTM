@@ -23,7 +23,7 @@ THRESHOLD = 75
 LEARNING_RATE = 1
 SEQUENCE_SPACING = 0.256 # In seconds
 TIME_STEPS = 4
-BATCH_SIZE = 24
+BATCH_SIZE = 16
 LOG_STEP = 10
 ROC_COLLECT = 15
 ITERATIONS = 5000000
@@ -64,8 +64,8 @@ def load_batch(sess, coord, op):
     batch_size = BATCH_SIZE
 
     while not coord.should_stop():
-        if batch_count % BATCH_REDUCE_ITERATION == 0 and batch_size >= BATCH_REDUCE_STEP + 1:
-            batch_size -= BATCH_REDUCE_STEP
+        # if batch_count % BATCH_REDUCE_ITERATION == 0 and batch_size >= BATCH_REDUCE_STEP + 1:
+        #     batch_size -= BATCH_REDUCE_STEP
 
         batch = DI.next_batch(batch_size)
 
