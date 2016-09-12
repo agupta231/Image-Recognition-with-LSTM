@@ -24,15 +24,20 @@ LEARNING_RATE = 1
 SEQUENCE_SPACING = 0.256 # In seconds
 TIME_STEPS = 4
 BATCH_SIZE = 22
-LOG_STEP = 1
-ROC_COLLECT = 10
-ITERATIONS = 50000
+LOG_STEP = 10
+ROC_COLLECT = 15
+ITERATIONS = 5000000
 
 CELL_SIZE = 348
 CELL_LAYERS = 64
 HIDDEN_SIZE = 11251
 SOFTMAX_SIZE = 256
 OUTPUT_SIZE = 2
+
+BATCH_REDUCE_ITERATION = 50
+BATCH_REDUCE_STEP = 4
+ACCURACY_CACHE_SIZE = 5
+STOPPING_THRESHOLD = 5
 
 REGENERATE_CHUNKS = True
 
@@ -55,9 +60,16 @@ if REGENERATE_CHUNKS:
 
 # Helper functions
 def load_batch(sess, coord, op):
-    while not coord.should_stop():
-        batch = DI.next_batch()
+    batch_count = 0
+    batch_size = BATCH_SIZE
 
+    while not coord.should_stop():
+        if batch_count % BATCH_REDUCE_ITERATION == 0 and batch_size >= BATCH_REDUCE_STEP + 1:
+            batch_size -= BATCH_REDUCE_STEP
+
+        batch = DI.next_batch(batch_size)
+
+        batch_count += 1
         sess.run(op, feed_dict={queue_input: batch[0], queue_output: batch[1]})
 
 
@@ -66,7 +78,8 @@ def load_batch(sess, coord, op):
 # Create queue for mulithreaded batch loaded
 queue_input = tf.placeholder(tf.float32, [BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS])
 queue_output = tf.placeholder(tf.float32, [BATCH_SIZE, OUTPUT_SIZE])
-queue = tf.RandomShuffleQueue(250, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
+# queue = tf.RandomShuffleQueue(250, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
+queue = tf.FIFOQueue(250, 2, [tf.float32, tf.float32], shapes=[[BATCH_SIZE, TIME_STEPS, PIXEL_COUNT + AUX_INPUTS], [BATCH_SIZE, OUTPUT_SIZE]])
 
 queue_op = queue.enqueue([queue_input, queue_output])
 
@@ -140,8 +153,8 @@ prediction = tf.nn.softmax(tf.matmul(last, softmax_w) + softmax_b)
 
 cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
 # cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, output_actual))
-train_step = tf.train.RMSPropOptimizer(LEARNING_RATE).minimize(cross_entropy)
-# train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
+# train_step = tf.train.RMSPropOptimizer(LEARNING_RATE).minimize(cross_entropy)
+train_step = tf.train.AdamOptimizer(learning_rate=LEARNING_RATE).minimize(cross_entropy)
 
 # Compare the value that has the largest probablity in the prediction and compare that to the actual answer
 correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(output_actual, 1))
@@ -168,10 +181,29 @@ with tf.Session() as session:
     t = threading.Thread(target=load_batch, args=(session, coordinator, queue_op))
     t.start()
 
+    # Create value to cache previous accuracies
+    previous_accuracies = [0] * ACCURACY_CACHE_SIZE
+
     for i in xrange(ITERATIONS):
         if i % LOG_STEP == 0:
             # train_accuracy, summary = session.run([accuracy, merged], feed_dict={initial_state: numpy_state})
             train_accuracy, summary = session.run([accuracy, merged], feed_dict={dropout: 0.5})
+
+            for j in xrange(1, len(previous_accuracies) - 1):
+                previous_accuracies[j - 1] = previous_accuracies[j]
+
+            previous_accuracies[-1] = train_accuracy
+
+            if i > (ACCURACY_CACHE_SIZE + 1) * LOG_STEP:
+                combined_delta = 0
+
+                for j in xrange(1, len(previous_accuracies) - 1):
+                    delta = previous_accuracies[j] - previous_accuracies[j - 1]
+                    combined_delta += abs(delta)
+
+                if combined_delta / ACCURACY_CACHE_SIZE <= STOPPING_THRESHOLD:
+                    exit()
+
             train_writer.add_summary(summary, i)
 
             print "Iteration " + str(i) + " Training Accuracy " + str(train_accuracy)
