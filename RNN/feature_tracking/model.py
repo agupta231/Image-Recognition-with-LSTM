@@ -6,7 +6,7 @@ import glob
 import os
 
 # Setup seed
-np.random.seed(0)
+np.random.seed(1)
 
 # Setup parameters
 IMAGE_HEIGHT = 150
@@ -18,24 +18,25 @@ FREQUENCY = 60
 
 FRAMES_FOLDER = "resize150"
 DISTANCE_DATA = "distances_sigma_2.25_1.5.txt"
-THRESHOLD = 60
+THRESHOLD = 61
 
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.0001
 SEQUENCE_SPACING = 0.256 # In seconds
-TIME_STEPS = 4
+TIME_STEPS = 6
 BATCH_SIZE = 22
 LOG_STEP = 10
 ROC_COLLECT = 15
 ITERATIONS = 5000000
 
-CELL_SIZE = 348
-CELL_LAYERS = 64
+CELL_SIZE = 1024
+CELL_LAYERS = 5
 HIDDEN_SIZE = 11251
-DEEP_CON_1 = 128
-DEEP_CON_2 = 64
-DEEP_CON_3 = 32
-DEEP_CON_4 = 16
-SOFTMAX_SIZE = 256
+DEEP_CON_1 = 512
+DEEP_CON_2 = 256
+DEEP_CON_3 = 128
+DEEP_CON_4 = 64
+DEEP_CON_5 = 32
+SOFTMAX_SIZE = 128
 OUTPUT_SIZE = 2
 
 BATCH_REDUCE_ITERATION = 50
@@ -43,7 +44,7 @@ BATCH_REDUCE_STEP = 4
 ACCURACY_CACHE_SIZE = 5
 STOPPING_THRESHOLD = 0
 
-REGENERATE_CHUNKS = True
+REGENERATE_CHUNKS = False
 
 # Generate folder for tensorboard summary files
 summary_save_dir = os.getcwd() + "/summaries/" + FRAMES_FOLDER + "_" + DISTANCE_DATA + "_lr" + str(LEARNING_RATE) + "_t" + str(THRESHOLD) + "_bs" + str(BATCH_SIZE) + "_ts" + str(TIME_STEPS) + "_p" + str(SEQUENCE_SPACING) + "_cs" + str(CELL_SIZE) + "x" + str(CELL_LAYERS) + "x" + str(HIDDEN_SIZE)
@@ -77,11 +78,18 @@ def load_batch(sess, coord, op):
 
 
 def weight_variable(shape):
-    return tf.Variable(tf.truncated_normal(shape=shape, stddev=0.1))
+    return tf.Variable(tf.random_normal(shape=shape, stddev=0.25))
 
 
 def bias_variable(shape):
     return tf.Variable(tf.constant(0.1, shape=shape))
+
+
+def max_pool(x, size, stride=2, padding=0):
+    print "x : " + str(x)
+    #x_padded = tf.pad(x, [[0, 0], [padding, padding], [padding, padding], [0, 0]], "CONSTANT")
+    return tf.nn.max_pool(x, ksize=[1, size, size, 1], strides=[stride, stride], padding='VALID')
+
 
 # The actual model
 
@@ -104,49 +112,68 @@ output_actual = raw[1]
 dropout = tf.placeholder(tf.float32)
 
 # This is the actual LSTM cell
-lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(CELL_SIZE, state_is_tuple=False)
+lstm_cell = tf.nn.rnn_cell.BasicLSTMCell(num_units=CELL_SIZE, state_is_tuple=False)
 
 # Create dropout to prevent dead neurons
-dropout_lstm = tf.nn.rnn_cell.DropoutWrapper(lstm_cell, output_keep_prob=dropout)
+dropout_lstm = tf.nn.rnn_cell.DropoutWrapper(cell=lstm_cell, output_keep_prob=dropout)
 
 # Layer the LSTM to give it more processing power
-stacked_lstm = tf.nn.rnn_cell.MultiRNNCell([lstm_cell] * CELL_LAYERS, state_is_tuple=False)
+stacked_lstm = tf.nn.rnn_cell.MultiRNNCell(cells=[lstm_cell] * CELL_LAYERS, state_is_tuple=False)
 
-# initial_state = state = stacked_lstm.zero_state(BATCH_SIZE, tf.float32)
-# outputs = []
-
-print input_sequence
-print input_sequence[:, 0, :]
+initial_state = state = stacked_lstm.zero_state(BATCH_SIZE, tf.float32)
+outputs = []
 
 # Get the output of the cell
-output, _ = tf.nn.dynamic_rnn(stacked_lstm, input_sequence, dtype=tf.float32)
+print input_sequence
+
+output, _ = tf.nn.dynamic_rnn(cell=stacked_lstm, inputs=input_sequence, dtype=tf.float32)
+
+print output
 
 # Transposed the output to get the last output in the sequence (Tensorflow can't do list[-1])
 output_transposed = tf.transpose(output, [1, 0, 2])
 
+print output_transposed
+
 # Get the final output of the LSTM
 last = tf.gather(output_transposed, int(output_transposed.get_shape()[0]) - 1)
 
-print last
+last_normalized = 2 * tf.div(tf.sub(last, tf.reduce_min(last)), tf.sub(tf.reduce_max(last), tf.reduce_min(last))) - 1
 
 # with tf.variable_scope("LSTM"):
+#
+#     weights = [weight_variable([PIXEL_COUNT + AUX_INPUTS, CELL_SIZE]) for i in xrange(TIME_STEPS)]
+#     biases = [bias_variable([CELL_SIZE]) for j in xrange(TIME_STEPS)]
+#
 #     for step in xrange(TIME_STEPS):
 #         if step > 0:
 #             tf.get_variable_scope().reuse_variables()
 #
-#         input_pre = tf.reshape(input_sequence[:, step, :], [-1, HIDDEN_SIZE])
+#         print input_sequence[:, step, :]
 #
-#         input_weight = tf.get_variable("lstm_w_" + str(step), [HIDDEN_SIZE, CELL_SIZE], dtype=tf.float32)
-#         input_bias = tf.get_variable("lstm_b" + str(step), [CELL_SIZE], dtype=tf.float32)
+#         input_pre = tf.reshape(input_sequence[:, step, :], [-1, PIXEL_COUNT + AUX_INPUTS])
+#         print input_pre
 #
 #         # input_post = tf.matmul(input_sequence[:, step, :], input_weight) + input_bias
-#         input_post = tf.matmul(input_pre, input_weight) + input_bias
+#         input_post = tf.nn.relu(tf.matmul(input_pre, weights[step]) + biases[step])
+#
+#         print input_post
+#         input_dropout = tf.nn.dropout(input_post, keep_prob=dropout)
+#
+#         print input_dropout
 #
 #         # cell_output, state = stacked_lstm(input_sequence[:, step, :], state)
-#         cell_output, state = stacked_lstm(input_post, state)
+#         cell_output, state = stacked_lstm(input_pre, state)
 #         outputs.append(cell_output)
-
+#
 # final_state = state
+# output_transposed = tf.transpose(outputs, [1, 0, 2])
+# print outputs[-1]
+# # last = tf.gather(output_transposed, int(output_transposed.get_shape()[0]) - 1)
+# last = outputs[-1]
+# print last
+
+# last = outputs[-1]
 
 # output = tf.reshape(tf.concat(1, outputs), [-1, HIDDEN_SIZE])
 #output = tf.reshape(outputs[-1], [BATCH_SIZE, SOFTMAX_SIZE])
@@ -156,7 +183,7 @@ print last
 
 dc1_w = weight_variable([CELL_SIZE, DEEP_CON_1])
 dc1_b = bias_variable([DEEP_CON_1])
-dc1_out = tf.nn.relu(tf.matmul(last, dc1_w) + dc1_b)
+dc1_out = tf.nn.tanh(tf.matmul(last_normalized, dc1_w) + dc1_b)
 
 dc2_w = weight_variable([DEEP_CON_1, DEEP_CON_2])
 dc2_b = bias_variable([DEEP_CON_2])
@@ -170,13 +197,17 @@ dc4_w = weight_variable([DEEP_CON_3, DEEP_CON_4])
 dc4_b = bias_variable([DEEP_CON_4])
 dc4_out = tf.nn.relu(tf.matmul(dc3_out, dc4_w) + dc4_b)
 
-final_dropout = tf.nn.dropout(dc4_out, keep_prob=dropout)
+dc5_w = weight_variable([DEEP_CON_4, DEEP_CON_5])
+dc5_b = bias_variable([DEEP_CON_5])
+dc5_out = tf.nn.relu(tf.matmul(dc4_out, dc5_w) + dc5_b)
+
+final_dropout = tf.nn.dropout(dc5_out, keep_prob=dropout)
 
 # Create softmax Layer
-softmax_w = weight_variable([DEEP_CON_4, OUTPUT_SIZE])
+softmax_w = weight_variable([DEEP_CON_5, OUTPUT_SIZE])
 softmax_b = bias_variable([OUTPUT_SIZE])
 # prediction = tf.nn.softmax(tf.matmul(output, softmax_w) + softmax_b)
-prediction = tf.nn.softmax(tf.matmul(final_dropout, softmax_w) + softmax_b)
+prediction = tf.nn.softmax(tf.matmul(dc5_out, softmax_w) + softmax_b)
 
 # cross_entropy = tf.reduce_mean(-tf.reduce_sum(output_actual * tf.log(prediction), reduction_indices=[1]))
 cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(prediction, output_actual))
@@ -197,6 +228,8 @@ tf.histogram_summary("Densly Connected Layer 3 weights", dc3_w)
 tf.histogram_summary("Densly Connected Layer 3 biases", dc3_b)
 tf.histogram_summary("Densly Connected Layer 4 weights", dc4_w)
 tf.histogram_summary("Densly Connected Layer 4 biases", dc4_b)
+tf.histogram_summary("Densly Connected Layer 5 weights", dc5_w)
+tf.histogram_summary("Densly Connected Layer 5 biases", dc5_b)
 tf.histogram_summary("softmax weights", softmax_w)
 tf.histogram_summary("softmax biases", softmax_b)
 tf.scalar_summary('accuracy', accuracy)
@@ -250,7 +283,7 @@ with tf.Session() as session:
             ROC_log_file = open(summary_save_dir + "/ROC.txt", "a")
 
             # Get the actual output values, the predicted values and the softmax values (just for debugging)
-            output_values, prediction_values, outputs_raw = session.run([output_actual, prediction, last], feed_dict={dropout: 0.5})
+            output_values, prediction_values, outputs_raw = session.run([output_actual, prediction, last_normalized], feed_dict={dropout: 1.0})
 
             print outputs_raw
             print output_values
