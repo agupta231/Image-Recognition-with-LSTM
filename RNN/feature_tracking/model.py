@@ -22,8 +22,8 @@ THRESHOLD = 61
 
 LEARNING_RATE = 0.0001
 SEQUENCE_SPACING = 0.256 # In seconds
-TIME_STEPS = 6
-BATCH_SIZE = 22
+TIME_STEPS = 4
+BATCH_SIZE = 6
 LOG_STEP = 10
 ROC_COLLECT = 15
 ITERATIONS = 5000000
@@ -138,7 +138,7 @@ print output_transposed
 # Get the final output of the LSTM
 last = tf.gather(output_transposed, int(output_transposed.get_shape()[0]) - 1)
 
-last_normalized = 2 * tf.div(tf.sub(last, tf.reduce_min(last)), tf.sub(tf.reduce_max(last), tf.reduce_min(last))) - 1
+last_normalized = 6 * tf.div(tf.sub(last, tf.reduce_min(last)), tf.sub(tf.reduce_max(last), tf.reduce_min(last))) - 3
 
 # with tf.variable_scope("LSTM"):
 #
